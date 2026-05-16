@@ -43,13 +43,13 @@ final class Caster {
      */
     public static function toString(mixed $value): string {
         return match (true) {
-            is_string($value) => $value,
-            is_int($value) || is_float($value) || $value instanceof Stringable => (string) $value,
+            \is_string($value) => $value,
+            \is_int($value) || \is_float($value) || $value instanceof Stringable => (string) $value,
             $value instanceof ToInt || $value instanceof ToFloat => (string) static::cast($value),
-            is_bool($value) => $value ? 'true' : 'false',
+            \is_bool($value) => $value ? 'true' : 'false',
             $value instanceof ToBool => $value->toBool() ? 'true' : 'false',
-            is_array($value) || is_object($value) => static::toJson($value),
-            default => throw new InvalidArgumentException('cant stringify ' . get_debug_type($value)),
+            \is_array($value) || \is_object($value) => static::toJson($value),
+            default => throw new InvalidArgumentException('Cannot stringify ' . get_debug_type($value)),
         };
     }
 
@@ -76,7 +76,7 @@ final class Caster {
             $value instanceof ToFloat => $value->toFloat(),
             $value instanceof ToBool => $value->toBool(),
             $value instanceof ToArray => $value->toArray(),
-            default => throw new InvalidArgumentException('cant cast ' . get_debug_type($value)),
+            default => throw new InvalidArgumentException('Cannot cast ' . get_debug_type($value)),
         };
     }
 

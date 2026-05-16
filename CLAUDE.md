@@ -66,7 +66,7 @@ PHP without the ini path when xdebug is listed but not found, dropping extension
 
 ## Versioning
 
-Follows [Semantic Versioning](https://semver.org). Current version: **0.1.0**
+Follows [Semantic Versioning](https://semver.org). Current version: **1.0.0**
 
 When releasing a new version:
 1. Update `"version"` in `composer.json`
