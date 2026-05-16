@@ -70,7 +70,9 @@ Follows [Semantic Versioning](https://semver.org). Current version: **0.1.0**
 
 When releasing a new version:
 1. Update `"version"` in `composer.json`
-2. Commit and push
-3. Create and push a git tag matching the version: `git tag 0.x.y && git push origin 0.x.y`
+2. Update `CHANGELOG.md`: add a new `## [x.y.z] - YYYY-MM-DD` section with `### Added / Changed / Fixed / Removed` entries and a comparison link at the bottom
+3. Update the version reference in `README.md`
+4. Commit and push
+5. Create and push a git tag matching the version: `git tag x.y.z && git push origin x.y.z`
 
 Consumers using `"type": "vcs"` in their `composer.json` resolve versions from git tags.
