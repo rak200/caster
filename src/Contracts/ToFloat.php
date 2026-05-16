@@ -2,13 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Ricardo\Caster\Contracts;
+namespace Rak200\Caster\Contracts;
 
+/**
+ * Contract for objects that can be represented as a float.
+ *
+ * @author rak200 <rak.ricardo@windowslive.com>
+ */
 interface ToFloat extends Castable {
 
     /**
-     * Convert the object to a float representation.
-     * @return float
+     * Return a float representation of the object.
+     *
+     * @return float The object's numeric value as a float.
      */
     public function toFloat(): float;
 }

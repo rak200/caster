@@ -5,12 +5,12 @@ Type casting contracts and utilities for PHP 8.4+.
 ## Installation
 
 ```bash
-composer require ricardo/caster
+composer require rak200/caster
 ```
 
 ## Contracts
 
-All contracts live under `Ricardo\Caster\Contracts` and extend `Castable`.
+All contracts live under `Rak200\Caster\Contracts` and extend `Castable`.
 
 | Interface  | Method              | Return   |
 |------------|---------------------|----------|
@@ -26,7 +26,7 @@ All contracts live under `Ricardo\Caster\Contracts` and extend `Castable`.
 ### Implementing a contract
 
 ```php
-use Ricardo\Caster\Contracts\ToJson;
+use Rak200\Caster\Contracts\ToJson;
 
 class User implements ToJson {
     public function __construct(
@@ -43,7 +43,7 @@ class User implements ToJson {
 ### Converting values with `Caster`
 
 ```php
-use Ricardo\Caster\Caster;
+use Rak200\Caster\Caster;
 
 // Primitives
 Caster::toString(42);           // "42"
@@ -73,7 +73,7 @@ Caster::toJson(new User(...));        // delegates to toJson()
 ## Versioning
 
 This library follows [Semantic Versioning](https://semver.org).  
-Current version: **0.0.1** — API is unstable until unit tests are added and `1.0.0` is released.
+Current version: **0.1.0**
 
 ## License
 
