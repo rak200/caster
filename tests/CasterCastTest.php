@@ -15,7 +15,17 @@ use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToJson;
 use Rak200\Caster\Contracts\ToString;
 
+/**
+ * Tests for Caster::cast().
+ *
+ * Verifies that each typed contract is dispatched correctly and that
+ * the priority order (ToJson > ToString > ToInt > ToFloat > ToBool > ToArray)
+ * is respected when an object implements multiple contracts.
+ *
+ * @author rak200 <rak.ricardo@windowslive.com>
+ */
 final class CasterCastTest extends TestCase {
+    /** ToJson objects return their toJson() string. */
     public function testToJson(): void {
         $obj = new class implements ToJson {
             public function toJson(): string { return '{"key":"value"}'; }
@@ -23,6 +33,7 @@ final class CasterCastTest extends TestCase {
         $this->assertSame('{"key":"value"}', Caster::cast($obj));
     }
 
+    /** ToString objects return their __toString() string. */
     public function testToString(): void {
         $obj = new class implements ToString {
             public function __toString(): string { return 'hello'; }
@@ -30,6 +41,7 @@ final class CasterCastTest extends TestCase {
         $this->assertSame('hello', Caster::cast($obj));
     }
 
+    /** ToInt objects return their toInt() integer. */
     public function testToInt(): void {
         $obj = new class implements ToInt {
             public function toInt(): int { return 42; }
@@ -37,6 +49,7 @@ final class CasterCastTest extends TestCase {
         $this->assertSame(42, Caster::cast($obj));
     }
 
+    /** ToFloat objects return their toFloat() float. */
     public function testToFloat(): void {
         $obj = new class implements ToFloat {
             public function toFloat(): float { return 3.14; }
@@ -44,6 +57,7 @@ final class CasterCastTest extends TestCase {
         $this->assertSame(3.14, Caster::cast($obj));
     }
 
+    /** ToBool objects returning true resolve to boolean true. */
     public function testToBoolTrue(): void {
         $obj = new class implements ToBool {
             public function toBool(): bool { return true; }
@@ -51,6 +65,7 @@ final class CasterCastTest extends TestCase {
         $this->assertTrue(Caster::cast($obj));
     }
 
+    /** ToBool objects returning false resolve to boolean false. */
     public function testToBoolFalse(): void {
         $obj = new class implements ToBool {
             public function toBool(): bool { return false; }
@@ -58,6 +73,7 @@ final class CasterCastTest extends TestCase {
         $this->assertFalse(Caster::cast($obj));
     }
 
+    /** ToArray objects return their toArray() array. */
     public function testToArray(): void {
         $obj = new class implements ToArray {
             public function toArray(): array { return [1, 2, 3]; }
@@ -65,12 +81,14 @@ final class CasterCastTest extends TestCase {
         $this->assertSame([1, 2, 3], Caster::cast($obj));
     }
 
+    /** Objects implementing only the marker Castable interface throw InvalidArgumentException. */
     public function testPlainCastableThrows(): void {
         $obj = new class implements Castable {};
         $this->expectException(InvalidArgumentException::class);
         Caster::cast($obj);
     }
 
+    /** ToJson takes priority over ToString when both are implemented. */
     public function testToJsonTakesPriorityOverToString(): void {
         $obj = new class implements ToJson, ToString {
             public function toJson(): string { return '"json"'; }
@@ -79,6 +97,7 @@ final class CasterCastTest extends TestCase {
         $this->assertSame('"json"', Caster::cast($obj));
     }
 
+    /** ToJson takes priority over ToInt when both are implemented. */
     public function testToJsonTakesPriorityOverToInt(): void {
         $obj = new class implements ToJson, ToInt {
             public function toJson(): string { return '"json"'; }
@@ -87,6 +106,7 @@ final class CasterCastTest extends TestCase {
         $this->assertSame('"json"', Caster::cast($obj));
     }
 
+    /** ToInt takes priority over ToFloat when both are implemented. */
     public function testToIntTakesPriorityOverToFloat(): void {
         $obj = new class implements ToInt, ToFloat {
             public function toInt(): int { return 5; }
