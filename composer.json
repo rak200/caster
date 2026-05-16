@@ -1,0 +1,21 @@
+{
+    "name": "ricardo/caster",
+    "description": "Type casting contracts and utilities for PHP 8.4+",
+    "version": "0.0.1",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "rak200",
+            "email": "rak.ricardo@windowslive.com"
+        }
+    ],
+    "require": {
+        "php": "^8.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ricardo\\Caster\\": "src/"
+        }
+    }
+}
