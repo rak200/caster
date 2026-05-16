@@ -73,7 +73,7 @@ Caster::toJson(new User(...));        // delegates to toJson()
 ## Versioning
 
 This library follows [Semantic Versioning](https://semver.org).  
-Current version: **0.1.0**
+Current version: **0.1.0** — see [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 
