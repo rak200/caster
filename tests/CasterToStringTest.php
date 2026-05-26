@@ -12,6 +12,8 @@ use Rak200\Caster\Contracts\ToFloat;
 use Rak200\Caster\Contracts\ToInt;
 use Stringable;
 
+use function json_decode;
+
 /**
  * Tests for Caster::toString().
  *

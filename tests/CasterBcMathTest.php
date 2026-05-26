@@ -8,6 +8,8 @@ use BcMath\Number;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 
+use function json_decode;
+
 /**
  * Tests for Caster integration with BcMath\Number (PHP 8.4+).
  *

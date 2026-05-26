@@ -11,6 +11,8 @@ use Rak200\Caster\Contracts\ToBool;
 use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToJson;
 
+use function json_decode;
+
 /**
  * Tests for Caster::toJson().
  *
