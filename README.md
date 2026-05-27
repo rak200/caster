@@ -116,7 +116,7 @@ try {
 ## Versioning
 
 This library follows [Semantic Versioning](https://semver.org).  
-Current version: **1.1.0** — see [CHANGELOG.md](CHANGELOG.md) for release history.
+Current version: **1.2.0** — see [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## License
 

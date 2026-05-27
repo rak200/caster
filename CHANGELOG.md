@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-27
+
+### Added
+- Universal converter methods on `Caster`, mirroring `toString()`'s pattern: `toInt()`, `toFloat()`, `toBool()`, `toArray()`, `toNumber()`, `toDateTime()`, `toEnum()`, `toCollection()`
+- All new methods accept `mixed`, dispatch to matching contracts (with specific contracts winning over generic `Stringable` fallback), and throw `InvalidArgumentException` for unconvertible types
+- `Caster::toEnum()` requires the target `class-string<\BackedEnum>` to disambiguate; `Caster::toDateTime()` interprets integers as Unix timestamps
+- 96 new tests covering every branch of the new converters
+
 ## [1.1.0] - 2026-05-27
 
 ### Added
@@ -57,6 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[1.2.0]: https://github.com/rak200/caster/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/rak200/caster/compare/1.0.1...1.1.0
 [1.0.1]: https://github.com/rak200/caster/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/rak200/caster/compare/0.1.0...1.0.0

@@ -55,9 +55,20 @@ Every contract extends `Castable` (a marker interface). `ToString` additionally 
 
 ## Caster class
 
-`Rak200\Caster\Caster` is `final` with three static methods:
+`Rak200\Caster\Caster` is `final` with the following static methods:
 
-- `toString(mixed $value): string` — converts any value to string; throws `InvalidArgumentException` for unconvertible types
+Universal converters (mirror `toString()`'s pattern; throw `InvalidArgumentException` for unconvertible types):
+- `toString(mixed $value): string`
+- `toInt(mixed $value): int`
+- `toFloat(mixed $value): float`
+- `toBool(mixed $value): bool`
+- `toArray(mixed $value): array`
+- `toNumber(mixed $value): \BcMath\Number`
+- `toDateTime(mixed $value): \DateTimeImmutable` (int values interpreted as Unix timestamps)
+- `toEnum(mixed $value, class-string<\BackedEnum> $enumClass): \BackedEnum`
+- `toCollection(mixed $value): iterable`
+
+Other:
 - `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\BackedEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`)
 - `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value; delegates to `toJson()` for `ToJson` objects; uses `JSON_THROW_ON_ERROR`
 
@@ -98,11 +109,15 @@ List of suggestions raised on 2026-05-27. Update as items are implemented.
 
 ### 🟡 Medium priority
 
-- [ ] **Universal methods on `Caster`** — mirror `toString()` for the remaining types:
+- [x] **Universal methods on `Caster`** — mirror `toString()` for the remaining types:
   - `toInt(mixed): int`
   - `toFloat(mixed): float`
   - `toBool(mixed): bool`
   - `toArray(mixed): array`
+  - `toNumber(mixed): \BcMath\Number`
+  - `toDateTime(mixed): \DateTimeImmutable`
+  - `toEnum(mixed, class-string<\BackedEnum> $enumClass): \BackedEnum` (target enum required to disambiguate)
+  - `toCollection(mixed): iterable`
 - [ ] **`tryTo*` methods** — variants that return `null` instead of throwing:
   - `tryToString(mixed): ?string`
   - `tryToInt(mixed): ?int`
