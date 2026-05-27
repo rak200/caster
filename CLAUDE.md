@@ -79,78 +79,78 @@ Consumers using `"type": "vcs"` in their `composer.json` resolve versions from g
 
 ---
 
-## Roadmap de Melhorias
+## Improvement Roadmap
 
-Lista de sugestões levantadas em 2026-05-27. Atualizar conforme forem implementadas.
+List of suggestions raised on 2026-05-27. Update as items are implemented.
 
-### 🔴 Alta prioridade
+### 🔴 High priority
 
-- [x] **Arquivo `LICENSE`** — necessário para uso legal por terceiros (sugestão: MIT)
-- [x] **PHPStan no CI** — adicionar análise estática com nível 8+ ao workflow do GitHub Actions
+- [x] **`LICENSE` file** — required for legal third-party use (suggested: MIT)
+- [x] **PHPStan in CI** — add static analysis at level 8+ to the GitHub Actions workflow
 
-### 🟡 Média prioridade
+### 🟡 Medium priority
 
-- [ ] **Métodos universais no `Caster`** — espelhar `toString()` para os demais tipos:
+- [ ] **Universal methods on `Caster`** — mirror `toString()` for the remaining types:
   - `toInt(mixed): int`
   - `toFloat(mixed): float`
   - `toBool(mixed): bool`
   - `toArray(mixed): array`
-- [ ] **Métodos `tryTo*`** — variantes que retornam `null` em vez de lançar exceção:
+- [ ] **`tryTo*` methods** — variants that return `null` instead of throwing:
   - `tryToString(mixed): ?string`
   - `tryToInt(mixed): ?int`
   - etc.
-- [ ] **`CasterInterface`** — interface para a classe `Caster` permitir injeção de dependência e mocks em testes de consumidores
-- [ ] **`Caster::can(mixed $value, string $contract): bool`** — verifica se um valor suporta determinado contrato
+- [ ] **`CasterInterface`** — interface for the `Caster` class to enable dependency injection and mocking in consumer tests
+- [ ] **`Caster::can(mixed $value, string $contract): bool`** — checks whether a value supports a given contract
 
-### 🟢 Baixa prioridade
+### 🟢 Low priority
 
-- [ ] **Novos contratos**:
+- [ ] **New contracts**:
   - `ToDateTime extends Castable` → `toDateTime(): \DateTimeImmutable`
   - `ToEnum extends Castable` → `toEnum(): \BackedEnum`
   - `ToCollection extends Castable` → `toCollection(): iterable`
-- [ ] **`Caster::all(array $values, string $method): array`** — aplica um método de conversão em lote
-- [ ] **Registro de conversores customizados** — `Caster::register('uuid', fn($v) => ...)` + `Caster::convert($value, 'uuid')`
-- [ ] **API fluente** — `Caster::of($value)->toString()->trim()->upper()` (ver seção abaixo)
-- [ ] **Testes de mutação** — integrar Infection para validar a qualidade dos testes
-- [ ] **PHP CS Fixer** — garantir estilo consistente (`@PER-CS2.0`)
-- [ ] **Cobertura de código** — integrar Codecov/Coveralls com badge no README
-- [ ] **Publicar no Packagist** — para instalação via `composer require rak200/caster`
-- [ ] **`CONTRIBUTING.md`** — guia para contribuidores
-- [ ] **Badges no README** — versão, CI status, PHP version
+- [ ] **`Caster::all(array $values, string $method): array`** — applies a conversion method in batch
+- [ ] **Custom converter registry** — `Caster::register('uuid', fn($v) => ...)` + `Caster::convert($value, 'uuid')`
+- [ ] **Fluent API** — `Caster::of($value)->toString()->trim()->upper()` (see section below)
+- [ ] **Mutation testing** — integrate Infection to validate test quality
+- [ ] **PHP CS Fixer** — enforce consistent style (`@PER-CS2.0`)
+- [ ] **Code coverage** — integrate Codecov/Coveralls with a README badge
+- [ ] **Publish on Packagist** — for installation via `composer require rak200/caster`
+- [ ] **`CONTRIBUTING.md`** — contributor guide
+- [ ] **README badges** — version, CI status, PHP version
 
-### API Fluente — Detalhamento
+### Fluent API — Details
 
-A ideia é criar uma classe `CasterBuilder` (ou `CastValue`) que envolve um valor e encadeia operações:
+The idea is to create a `CasterBuilder` (or `CastValue`) class that wraps a value and chains operations:
 
 ```php
-// Hoje:
+// Today:
 $result = strtoupper(trim(Caster::toString($value)));
 
-// Com API fluente:
+// With fluent API:
 $result = Caster::of($value)
     ->toString()
     ->trim()
     ->upper()
-    ->get(); // retorna o valor final
+    ->get(); // returns the final value
 ```
 
-**Componentes necessários:**
+**Required components:**
 
 ```
 src/
 └── Builder/
-    ├── CastBuilder.php       # classe fluente principal
-    └── StringCastBuilder.php # builder especializado para strings
+    ├── CastBuilder.php       # main fluent class
+    └── StringCastBuilder.php # specialized builder for strings
 ```
 
-**Funcionamento interno:**
-- `Caster::of($value)` retorna uma instância de `CastBuilder` que carrega o valor
-- Métodos como `toString()`, `toInt()` fazem a conversão e retornam um builder especializado
-- Métodos de transformação (`trim()`, `upper()`, `lower()`, `pad()`) operam sobre o valor já convertido
-- `get()` extrai o valor final
-- O builder é imutável — cada operação retorna uma nova instância
+**Inner workings:**
+- `Caster::of($value)` returns a `CastBuilder` instance carrying the value
+- Methods like `toString()`, `toInt()` perform the conversion and return a specialized builder
+- Transformation methods (`trim()`, `upper()`, `lower()`, `pad()`) operate on the already-converted value
+- `get()` extracts the final value
+- The builder is immutable — each operation returns a new instance
 
-**Exemplo de implementação mínima:**
+**Minimal implementation example:**
 
 ```php
 final class CastBuilder
@@ -181,14 +181,14 @@ final class StringCastBuilder
 }
 ```
 
-**Prós:**
-- Código mais legível e declarativo
-- Elimina funções aninhadas difíceis de ler
-- Encadeamento infinito sem variáveis intermediárias
-- Fácil de estender com novos métodos de transformação
+**Pros:**
+- More readable, declarative code
+- Eliminates hard-to-read nested function calls
+- Endless chaining without intermediate variables
+- Easy to extend with new transformation methods
 
-**Contras / Cuidados:**
-- Aumenta o tamanho da biblioteca significativamente
-- Cada transformação cria um novo objeto (impacto de memória em volumes altos)
-- Pode ser percebido como "escopo demais" para uma lib de contratos simples
-- Alternativa: manter como pacote separado `rak200/caster-fluent`
+**Cons / caveats:**
+- Significantly increases the library size
+- Each transformation creates a new object (memory impact in high-volume scenarios)
+- May be perceived as "scope creep" for a simple contracts library
+- Alternative: keep it as a separate package `rak200/caster-fluent`
