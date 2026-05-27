@@ -85,8 +85,8 @@ Lista de sugestões levantadas em 2026-05-27. Atualizar conforme forem implement
 
 ### 🔴 Alta prioridade
 
-- [ ] **Arquivo `LICENSE`** — necessário para uso legal por terceiros (sugestão: MIT)
-- [ ] **PHPStan no CI** — adicionar análise estática com nível 8+ ao workflow do GitHub Actions
+- [x] **Arquivo `LICENSE`** — necessário para uso legal por terceiros (sugestão: MIT)
+- [x] **PHPStan no CI** — adicionar análise estática com nível 8+ ao workflow do GitHub Actions
 
 ### 🟡 Média prioridade
 
