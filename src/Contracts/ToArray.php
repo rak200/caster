@@ -14,7 +14,7 @@ interface ToArray extends Castable {
     /**
      * Return an array representation of the object.
      *
-     * @return array The object's data as a plain PHP array.
+     * @return array<mixed> The object's data as a plain PHP array.
      */
     public function toArray(): array;
 }

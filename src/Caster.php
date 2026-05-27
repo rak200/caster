@@ -47,7 +47,8 @@ final class Caster {
         return match (true) {
             is_string($value) => $value,
             is_int($value) || is_float($value) || $value instanceof Stringable => (string) $value,
-            $value instanceof ToInt || $value instanceof ToFloat => (string) static::cast($value),
+            $value instanceof ToInt => (string) $value->toInt(),
+            $value instanceof ToFloat => (string) $value->toFloat(),
             is_bool($value) => $value ? 'true' : 'false',
             $value instanceof ToBool => $value->toBool() ? 'true' : 'false',
             is_array($value) || is_object($value) => static::toJson($value),
@@ -67,7 +68,7 @@ final class Caster {
      *  6. ToArray  → toArray()   : array
      *
      * @param Castable $value An object implementing at least one typed contract.
-     * @return string|int|float|bool|array The value returned by the matching contract method.
+     * @return string|int|float|bool|array<mixed> The value returned by the matching contract method.
      * @throws InvalidArgumentException When $value implements only the marker Castable interface.
      */
     public static function cast(Castable $value): string|int|float|bool|array {
