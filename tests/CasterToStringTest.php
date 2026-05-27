@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace Rak200\Caster\Tests;
 
+use BackedEnum;
+use BcMath\Number;
+use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToBool;
+use Rak200\Caster\Contracts\ToCollection;
+use Rak200\Caster\Contracts\ToDateTime;
+use Rak200\Caster\Contracts\ToEnum;
 use Rak200\Caster\Contracts\ToFloat;
 use Rak200\Caster\Contracts\ToInt;
+use Rak200\Caster\Contracts\ToNumber;
 use Stringable;
 
 use function json_decode;
@@ -128,4 +135,78 @@ final class CasterToStringTest extends TestCase {
         };
         $this->assertSame('from-string', Caster::toString($obj));
     }
+
+    /** ToNumber objects are stringified via BcMath\Number's Stringable. */
+    public function testToNumberObject(): void {
+        $obj = new class implements ToNumber {
+            public function toNumber(): Number { return new Number('3.14'); }
+        };
+        $this->assertSame('3.14', Caster::toString($obj));
+    }
+
+    /** ToDateTime objects are stringified as ISO 8601. */
+    public function testToDateTimeObject(): void {
+        $obj = new class implements ToDateTime {
+            public function toDateTime(): DateTimeImmutable {
+                return new DateTimeImmutable('2026-05-27T12:00:00+00:00');
+            }
+        };
+        $this->assertSame('2026-05-27T12:00:00+00:00', Caster::toString($obj));
+    }
+
+    /** ToEnum objects with a string-backed enum yield the backing value. */
+    public function testToEnumObjectStringBacked(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): BackedEnum { return CasterToStringTestStatus::Active; }
+        };
+        $this->assertSame('active', Caster::toString($obj));
+    }
+
+    /** ToEnum objects with an int-backed enum yield the value cast to string. */
+    public function testToEnumObjectIntBacked(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): BackedEnum { return CasterToStringTestLevel::High; }
+        };
+        $this->assertSame('2', Caster::toString($obj));
+    }
+
+    /** ToCollection objects are stringified as JSON of the materialised iterable. */
+    public function testToCollectionObjectArray(): void {
+        $obj = new class implements ToCollection {
+            public function toCollection(): iterable { return ['a' => 1, 'b' => 2]; }
+        };
+        $result = Caster::toString($obj);
+        $this->assertJson($result);
+        $this->assertSame(['a' => 1, 'b' => 2], json_decode($result, true));
+    }
+
+    /** ToCollection objects backed by a Generator are materialised before encoding. */
+    public function testToCollectionObjectGenerator(): void {
+        $obj = new class implements ToCollection {
+            public function toCollection(): iterable {
+                yield 1;
+                yield 2;
+                yield 3;
+            }
+        };
+        $result = Caster::toString($obj);
+        $this->assertJson($result);
+        $this->assertSame([1, 2, 3], json_decode($result, true));
+    }
+}
+
+/**
+ * String-backed enum used exclusively by CasterToStringTest::testToEnumObjectStringBacked().
+ */
+enum CasterToStringTestStatus: string {
+    case Active = 'active';
+    case Inactive = 'inactive';
+}
+
+/**
+ * Int-backed enum used exclusively by CasterToStringTest::testToEnumObjectIntBacked().
+ */
+enum CasterToStringTestLevel: int {
+    case Low = 1;
+    case High = 2;
 }

@@ -19,9 +19,13 @@ caster/
 │       ├── Castable.php     # Base marker interface
 │       ├── ToArray.php
 │       ├── ToBool.php
+│       ├── ToCollection.php
+│       ├── ToDateTime.php
+│       ├── ToEnum.php
 │       ├── ToFloat.php
 │       ├── ToInt.php
 │       ├── ToJson.php
+│       ├── ToNumber.php
 │       └── ToString.php     # extends Castable + Stringable
 └── tests/
     ├── CasterBcMathTest.php
@@ -36,21 +40,25 @@ All classes live under the `Rak200\Caster` namespace (PSR-4, mapped from `src/`)
 
 Every contract extends `Castable` (a marker interface). `ToString` additionally extends PHP's built-in `Stringable`.
 
-| Interface  | Namespace                    | Method         | Return   |
-|------------|------------------------------|----------------|----------|
-| `ToArray`  | `Rak200\Caster\Contracts`   | `toArray()`    | `array`  |
-| `ToBool`   | `Rak200\Caster\Contracts`   | `toBool()`     | `bool`   |
-| `ToFloat`  | `Rak200\Caster\Contracts`   | `toFloat()`    | `float`  |
-| `ToInt`    | `Rak200\Caster\Contracts`   | `toInt()`      | `int`    |
-| `ToJson`   | `Rak200\Caster\Contracts`   | `toJson()`     | `string` |
-| `ToString` | `Rak200\Caster\Contracts`   | `__toString()` | `string` |
+| Interface      | Namespace                  | Method           | Return               |
+|----------------|----------------------------|------------------|----------------------|
+| `ToArray`      | `Rak200\Caster\Contracts`  | `toArray()`      | `array`              |
+| `ToBool`       | `Rak200\Caster\Contracts`  | `toBool()`       | `bool`               |
+| `ToCollection` | `Rak200\Caster\Contracts`  | `toCollection()` | `iterable`           |
+| `ToDateTime`   | `Rak200\Caster\Contracts`  | `toDateTime()`   | `\DateTimeImmutable` |
+| `ToEnum`       | `Rak200\Caster\Contracts`  | `toEnum()`       | `\BackedEnum`        |
+| `ToFloat`      | `Rak200\Caster\Contracts`  | `toFloat()`      | `float`              |
+| `ToInt`        | `Rak200\Caster\Contracts`  | `toInt()`        | `int`                |
+| `ToJson`       | `Rak200\Caster\Contracts`  | `toJson()`       | `string`             |
+| `ToNumber`     | `Rak200\Caster\Contracts`  | `toNumber()`     | `\BcMath\Number`     |
+| `ToString`     | `Rak200\Caster\Contracts`  | `__toString()`   | `string`             |
 
 ## Caster class
 
 `Rak200\Caster\Caster` is `final` with three static methods:
 
 - `toString(mixed $value): string` — converts any value to string; throws `InvalidArgumentException` for unconvertible types
-- `cast(Castable $value): string|int|float|bool|array` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToInt` → `ToFloat` → `ToBool` → `ToArray`)
+- `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\BackedEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`)
 - `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value; delegates to `toJson()` for `ToJson` objects; uses `JSON_THROW_ON_ERROR`
 
 ## Running tests
@@ -104,7 +112,8 @@ List of suggestions raised on 2026-05-27. Update as items are implemented.
 
 ### 🟢 Low priority
 
-- [ ] **New contracts**:
+- [x] **New contracts**:
+  - `ToNumber extends Castable` → `toNumber(): \BcMath\Number` (arbitrary-precision numeric)
   - `ToDateTime extends Castable` → `toDateTime(): \DateTimeImmutable`
   - `ToEnum extends Castable` → `toEnum(): \BackedEnum`
   - `ToCollection extends Castable` → `toCollection(): iterable`

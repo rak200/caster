@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-05-27
+
+### Added
+- New contracts: `ToNumber` (→ `\BcMath\Number`), `ToDateTime` (→ `\DateTimeImmutable`), `ToEnum` (→ `\BackedEnum`), `ToCollection` (→ `iterable`)
+- `Caster::cast()` dispatches to the four new contracts; return type widened to `string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\BackedEnum|\Traversable`
+- `Caster::toString()` handles the new contracts with natural string outputs: ISO 8601 for `ToDateTime`, backed value for `ToEnum`, materialised iterable as JSON for `ToCollection`
+- `rak200/utils` (`^1.0`) added as a runtime dependency, sourced from GitHub via `repositories`
+
+### Changed
+- `Caster::cast()` dispatch priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`
+- Improvement roadmap in `CLAUDE.md` translated to English; "New contracts" item marked as done
+
 ## [1.0.1] - 2026-05-26
 
 ### Changed
@@ -45,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[1.1.0]: https://github.com/rak200/caster/compare/1.0.1...1.1.0
 [1.0.1]: https://github.com/rak200/caster/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/rak200/caster/compare/0.1.0...1.0.0
 [0.1.0]: https://github.com/rak200/caster/compare/0.0.1...0.1.0
