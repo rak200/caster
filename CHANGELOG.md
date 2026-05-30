@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-30
+
+### Added
+- Pure (non-backed) enum support: `Caster::toEnum()` matches a pure enum by case name, and `Caster::toString()` renders a pure enum case as its name
+
+### Changed
+- `ToEnum::toEnum()` return type widened from `\BackedEnum` to `\UnitEnum` (covariant — implementers may still return a `\BackedEnum`)
+- `Caster::toEnum()` signature now takes `class-string<\UnitEnum>`, and `Caster::cast()`'s return type widened to include `\UnitEnum`
+- Enum/numeric converters now route through `rak200/utils` 1.8.0 helpers — `Enum::scalar()`, `Enum::isBackedInt()`, and the `Num::is()` gate with `Num::parseFloat()`/`Num::parseNumber()` — removing the private `unitEnumScalar()`, `backedEnumValue()` and `numberFromString()` helpers
+- `Caster::toInt()` accepts only **int-backed** enum cases; string-backed cases (numeric or not) and pure enums now throw `InvalidArgumentException`
+- `Caster::toFloat()` and `Caster::toNumber()` require a **numeric** scalar: int-backed and numeric string-backed enums convert, while non-numeric string-backed cases and pure enums now throw `InvalidArgumentException`
+- Bumped the `rak200/utils` requirement from `^1.0` to `^1.8`
+
 ## [1.2.0] - 2026-05-27
 
 ### Added
@@ -65,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[1.3.0]: https://github.com/rak200/caster/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/rak200/caster/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/rak200/caster/compare/1.0.1...1.1.0
 [1.0.1]: https://github.com/rak200/caster/compare/1.0.0...1.0.1

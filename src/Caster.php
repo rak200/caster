@@ -15,6 +15,10 @@ use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToJson;
 use Rak200\Caster\Contracts\ToNumber;
 use Rak200\Caster\Contracts\ToString;
+use Rak200\Utils\Enum;
+use Rak200\Utils\Json;
+use Rak200\Utils\Num;
+use Rak200\Utils\Type;
 use BackedEnum;
 use BcMath\Number;
 use DateTime;
@@ -22,8 +26,7 @@ use DateTimeImmutable;
 use InvalidArgumentException;
 use Stringable;
 use Traversable;
-
-use function is_string, is_int, is_float, is_bool, is_array, is_object, is_a, is_subclass_of, is_numeric, get_debug_type, json_encode;
+use UnitEnum;
 
 /**
  * Static utility class for converting values between PHP types.
@@ -47,7 +50,7 @@ final class Caster {
      *  - bool                     → 'true' or 'false'
      *  - ToBool                   → toBool() then 'true' or 'false'
      *  - ToDateTime               → DateTimeImmutable formatted as ISO 8601
-     *  - ToEnum                   → BackedEnum backing value as string
+     *  - ToEnum                   → BackedEnum backing value, or pure enum case name, as string
      *  - ToCollection             → materialised iterable encoded as JSON
      *  - array|object             → toJson()
      *
@@ -57,18 +60,18 @@ final class Caster {
      */
     public static function toString(mixed $value): string {
         return match (true) {
-            is_string($value) => $value,
-            is_int($value) || is_float($value) || $value instanceof Stringable => (string) $value,
+            Type::isStr($value) => $value,
+            Type::isInt($value) || Type::isFloat($value) || $value instanceof Stringable => (string) $value,
             $value instanceof ToInt => (string) $value->toInt(),
             $value instanceof ToFloat => (string) $value->toFloat(),
             $value instanceof ToNumber => (string) $value->toNumber(),
-            is_bool($value) => $value ? 'true' : 'false',
+            Type::isBool($value) => $value ? 'true' : 'false',
             $value instanceof ToBool => $value->toBool() ? 'true' : 'false',
             $value instanceof ToDateTime => $value->toDateTime()->format('c'),
-            $value instanceof ToEnum => (string) $value->toEnum()->value,
+            $value instanceof ToEnum => (string) Enum::scalar($value->toEnum()),
             $value instanceof ToCollection => static::toJson([...$value->toCollection()]),
-            is_array($value) || is_object($value) => static::toJson($value),
-            default => throw new InvalidArgumentException('Cannot stringify ' . get_debug_type($value)),
+            Type::isArray($value) || Type::isObject($value) => static::toJson($value),
+            default => throw new InvalidArgumentException('Cannot stringify ' . Type::of($value)),
         };
     }
 
@@ -81,17 +84,17 @@ final class Caster {
      */
     public static function toInt(mixed $value): int {
         return match (true) {
-            is_int($value) => $value,
+            Type::isInt($value) => $value,
             $value instanceof ToInt => $value->toInt(),
             $value instanceof ToFloat => (int) $value->toFloat(),
             $value instanceof ToNumber => (int) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1 : 0,
             $value instanceof ToDateTime => $value->toDateTime()->getTimestamp(),
-            $value instanceof ToEnum => (int) $value->toEnum()->value,
-            is_float($value) || is_bool($value) => (int) $value,
-            is_string($value) => (int) $value,
+            $value instanceof ToEnum && Enum::isBackedInt($e = $value->toEnum()) => (int) $e->value,
+            Type::isFloat($value) || Type::isBool($value) => (int) $value,
+            Type::isStr($value) => (int) $value,
             $value instanceof Stringable => (int) (string) $value,
-            default => throw new InvalidArgumentException('Cannot convert ' . get_debug_type($value) . ' to int'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to int'),
         };
     }
 
@@ -104,17 +107,17 @@ final class Caster {
      */
     public static function toFloat(mixed $value): float {
         return match (true) {
-            is_float($value) => $value,
+            Type::isFloat($value) => $value,
             $value instanceof ToFloat => $value->toFloat(),
             $value instanceof ToInt => (float) $value->toInt(),
             $value instanceof ToNumber => (float) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1.0 : 0.0,
             $value instanceof ToDateTime => (float) $value->toDateTime()->format('U.u'),
-            $value instanceof ToEnum => (float) $value->toEnum()->value,
-            is_int($value) || is_bool($value) => (float) $value,
-            is_string($value) => (float) $value,
+            $value instanceof ToEnum && Num::is($s = Enum::scalar($value->toEnum())) => Num::parseFloat((string) $s),
+            Type::isInt($value) || Type::isBool($value) => (float) $value,
+            Type::isStr($value) => (float) $value,
             $value instanceof Stringable => (float) (string) $value,
-            default => throw new InvalidArgumentException('Cannot convert ' . get_debug_type($value) . ' to float'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to float'),
         };
     }
 
@@ -127,18 +130,18 @@ final class Caster {
      */
     public static function toBool(mixed $value): bool {
         return match (true) {
-            is_bool($value) => $value,
+            Type::isBool($value) => $value,
             $value instanceof ToBool => $value->toBool(),
             $value instanceof ToInt => (bool) $value->toInt(),
             $value instanceof ToFloat => (bool) $value->toFloat(),
             $value instanceof ToNumber => (bool) (string) $value->toNumber(),
-            is_int($value) || is_float($value) => (bool) $value,
-            is_string($value) => (bool) $value,
+            Type::isInt($value) || Type::isFloat($value) => (bool) $value,
+            Type::isStr($value) => (bool) $value,
             $value instanceof Stringable => (bool) (string) $value,
-            is_array($value) => $value !== [],
+            Type::isArray($value) => $value !== [],
             $value instanceof ToArray => $value->toArray() !== [],
             $value instanceof ToCollection => [...$value->toCollection()] !== [],
-            default => throw new InvalidArgumentException('Cannot convert ' . get_debug_type($value) . ' to bool'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to bool'),
         };
     }
 
@@ -151,11 +154,11 @@ final class Caster {
      */
     public static function toArray(mixed $value): array {
         return match (true) {
-            is_array($value) => $value,
+            Type::isArray($value) => $value,
             $value instanceof ToArray => $value->toArray(),
             $value instanceof ToCollection => [...$value->toCollection()],
             $value instanceof Traversable => [...$value],
-            default => throw new InvalidArgumentException('Cannot convert ' . get_debug_type($value) . ' to array'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to array'),
         };
     }
 
@@ -173,25 +176,12 @@ final class Caster {
             $value instanceof ToInt => new Number((string) $value->toInt()),
             $value instanceof ToFloat => new Number((string) $value->toFloat()),
             $value instanceof ToBool => new Number($value->toBool() ? '1' : '0'),
-            $value instanceof ToEnum => static::numberFromString((string) $value->toEnum()->value),
-            is_int($value) || is_float($value) => new Number((string) $value),
-            is_bool($value) => new Number($value ? '1' : '0'),
-            is_string($value) => static::numberFromString($value),
-            $value instanceof Stringable => static::numberFromString((string) $value),
-            default => throw new InvalidArgumentException('Cannot convert ' . get_debug_type($value) . ' to Number'),
+            $value instanceof ToEnum && Num::is($s = Enum::scalar($value->toEnum())) => Num::parseNumber((string) $s),
+            Type::isBool($value) => new Number($value ? '1' : '0'),
+            Num::is($value) => Num::parseNumber((string) $value),
+            $value instanceof Stringable && Num::is($v = (string) $value) => Num::parseNumber($v),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to Number'),
         };
-    }
-
-    /**
-     * Build a BcMath\Number from a string after verifying it is numeric.
-     *
-     * @throws InvalidArgumentException When $value is not a numeric string.
-     */
-    private static function numberFromString(string $value): Number {
-        if (!is_numeric($value)) {
-            throw new InvalidArgumentException("Cannot convert non-numeric string '$value' to Number");
-        }
-        return new Number($value);
     }
 
     /**
@@ -209,35 +199,57 @@ final class Caster {
             $value instanceof DateTime => DateTimeImmutable::createFromMutable($value),
             $value instanceof ToDateTime => $value->toDateTime(),
             $value instanceof ToInt => new DateTimeImmutable('@' . $value->toInt()),
-            is_int($value) => new DateTimeImmutable('@' . $value),
-            is_string($value) => new DateTimeImmutable($value),
+            Type::isInt($value) => new DateTimeImmutable('@' . $value),
+            Type::isStr($value) => new DateTimeImmutable($value),
             $value instanceof Stringable => new DateTimeImmutable((string) $value),
-            default => throw new InvalidArgumentException('Cannot convert ' . get_debug_type($value) . ' to DateTimeImmutable'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to DateTimeImmutable'),
         };
     }
 
     /**
-     * Convert any value to a case of the given BackedEnum.
+     * Convert any value to a case of the given UnitEnum.
      *
-     * @template T of BackedEnum
+     * For backed enums, ints/strings are mapped via $enumClass::from() (the
+     * backing value). For pure enums, strings are matched against case names.
+     *
+     * @template T of UnitEnum
      * @param mixed $value The value to convert.
-     * @param class-string<T> $enumClass The target BackedEnum class.
+     * @param class-string<T> $enumClass The target enum class.
      * @return T The matching enum case.
-     * @throws InvalidArgumentException When $enumClass is not a BackedEnum, or $value cannot be converted.
-     * @throws \ValueError When the underlying value does not match any case of $enumClass.
+     * @throws InvalidArgumentException When $enumClass is not a UnitEnum, or $value cannot be converted.
      */
-    public static function toEnum(mixed $value, string $enumClass): BackedEnum {
-        if (!is_subclass_of($enumClass, BackedEnum::class)) {
-            throw new InvalidArgumentException($enumClass . ' is not a BackedEnum');
+    public static function toEnum(mixed $value, string $enumClass = UnitEnum::class): UnitEnum {
+        // spread operator to overpass staticMethod.alreadyNarrowedType error from PHPStan
+        if (!Type::isA(...[$enumClass, UnitEnum::class])) {
+            throw new InvalidArgumentException("$enumClass is not a UnitEnum");
         }
-        return match (true) {
-            is_a($value, $enumClass) => $value,
-            $value instanceof ToEnum && is_a($value->toEnum(), $enumClass) => $value->toEnum(),
-            $value instanceof ToInt => $enumClass::from($value->toInt()),
-            is_int($value) || is_string($value) => $enumClass::from($value),
-            $value instanceof Stringable => $enumClass::from((string) $value),
-            default => throw new InvalidArgumentException('Cannot convert ' . get_debug_type($value) . ' to ' . $enumClass),
+        if (Type::isInstanceOf($value, $enumClass)) {
+            return $value;
+        }
+        if ($value instanceof ToEnum) {
+            $case = $value->toEnum();
+            if (Type::isInstanceOf($case, $enumClass)) {
+                return $case;
+            }
+        }
+        $intValue = match (true) {
+            $value instanceof ToInt => $value->toInt(),
+            Type::isInt($value) => $value,
+            default => null,
         };
+        $stringValue = match (true) {
+            $value instanceof Stringable => (string) $value,
+            Type::isStr($value) => $value,
+            default => null,
+        };
+        $scalar = $intValue ?? $stringValue;
+        if (Type::isNull($scalar)) {
+            throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to ' . $enumClass);
+        }
+        return (Type::isSubclassOf($enumClass, BackedEnum::class)
+            ? $enumClass::tryFrom($scalar) : null)
+            ?? Enum::tryFromName($enumClass, (string) $stringValue)
+            ?? throw new InvalidArgumentException("'$scalar' is not a case of $enumClass");
     }
 
     /**
@@ -249,11 +261,11 @@ final class Caster {
      */
     public static function toCollection(mixed $value): iterable {
         return match (true) {
-            is_array($value) => $value,
+            Type::isArray($value) => $value,
             $value instanceof Traversable => $value,
             $value instanceof ToCollection => $value->toCollection(),
             $value instanceof ToArray => $value->toArray(),
-            default => throw new InvalidArgumentException('Cannot convert ' . get_debug_type($value) . ' to iterable'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to iterable'),
         };
     }
 
@@ -268,15 +280,15 @@ final class Caster {
      *  5. ToFloat      → toFloat()     : float
      *  6. ToBool       → toBool()      : bool
      *  7. ToDateTime   → toDateTime()  : \DateTimeImmutable
-     *  8. ToEnum       → toEnum()      : \BackedEnum
+     *  8. ToEnum       → toEnum()      : \UnitEnum
      *  9. ToCollection → toCollection(): iterable
      * 10. ToArray      → toArray()     : array
      *
      * @param Castable $value An object implementing at least one typed contract.
-     * @return string|int|float|bool|array<mixed>|Number|DateTimeImmutable|BackedEnum|Traversable<mixed> The value returned by the matching contract method.
+     * @return string|int|float|bool|array<mixed>|Number|DateTimeImmutable|UnitEnum|Traversable<mixed> The value returned by the matching contract method.
      * @throws InvalidArgumentException When $value implements only the marker Castable interface.
      */
-    public static function cast(Castable $value): string|int|float|bool|array|Number|DateTimeImmutable|BackedEnum|Traversable {
+    public static function cast(Castable $value): string|int|float|bool|array|Number|DateTimeImmutable|UnitEnum|Traversable {
         return match (true) {
             $value instanceof ToJson => $value->toJson(),
             $value instanceof ToString => $value->__toString(),
@@ -288,7 +300,7 @@ final class Caster {
             $value instanceof ToEnum => $value->toEnum(),
             $value instanceof ToCollection => $value->toCollection(),
             $value instanceof ToArray => $value->toArray(),
-            default => throw new InvalidArgumentException('Cannot cast ' . get_debug_type($value)),
+            default => throw new InvalidArgumentException('Cannot cast ' . Type::of($value)),
         };
     }
 
@@ -296,11 +308,11 @@ final class Caster {
      * Encode any value as a JSON string.
      *
      * - ToJson objects: delegates directly to toJson(), ignoring $flags.
-     * - Other Castable objects: cast() first, then json_encode().
-     * - Everything else: json_encode() directly.
+     * - Other Castable objects: cast() first, then Json::encode().
+     * - Everything else: Json::encode() directly.
      *
-     * JSON_THROW_ON_ERROR is always added to $flags, so encoding failures
-     * throw a JsonException rather than returning false.
+     * JSON_THROW_ON_ERROR is always added to $flags by Json::encode(), so
+     * encoding failures throw a JsonException rather than returning false.
      *
      * @param mixed $value The value to encode.
      * @param int   $flags json_encode() flags. Defaults to JSON_PRETTY_PRINT.
@@ -313,6 +325,6 @@ final class Caster {
         } else if ($value instanceof Castable) {
             $value = static::cast($value);
         }
-        return json_encode($value, $flags | JSON_THROW_ON_ERROR);
+        return Json::encode($value, $flags);
     }
 }

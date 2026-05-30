@@ -17,6 +17,7 @@ use Rak200\Caster\Contracts\ToFloat;
 use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToNumber;
 use Stringable;
+use UnitEnum;
 
 /**
  * Tests for Caster::toInt().
@@ -95,6 +96,23 @@ final class CasterToIntTest extends TestCase {
         $this->assertSame(2, Caster::toInt($obj));
     }
 
+    /** Only int-backed enums convert to int; a string-backed case throws, even when numeric. */
+    public function testToEnumStringBackedThrows(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): BackedEnum { return CasterToIntTestCode::Ten; }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt($obj);
+    }
+
+    public function testToEnumPureThrows(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): UnitEnum { return CasterToIntTestColor::Red; }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt($obj);
+    }
+
     public function testNullThrows(): void {
         $this->expectException(InvalidArgumentException::class);
         Caster::toInt(null);
@@ -112,4 +130,12 @@ final class CasterToIntTest extends TestCase {
 enum CasterToIntTestLevel: int {
     case Low = 1;
     case High = 2;
+}
+
+enum CasterToIntTestCode: string {
+    case Ten = '10';
+}
+
+enum CasterToIntTestColor {
+    case Red;
 }

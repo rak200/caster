@@ -15,6 +15,7 @@ use Rak200\Caster\Contracts\ToFloat;
 use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToNumber;
 use Stringable;
+use UnitEnum;
 
 /**
  * Tests for Caster::toNumber().
@@ -89,6 +90,21 @@ final class CasterToNumberTest extends TestCase {
         $this->assertSame('2', (string) Caster::toNumber($obj));
     }
 
+    public function testToEnumStringBackedNumeric(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): BackedEnum { return CasterToNumberTestCode::Pi; }
+        };
+        $this->assertSame('3.14', (string) Caster::toNumber($obj));
+    }
+
+    public function testToEnumPureThrows(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): UnitEnum { return CasterToNumberTestColor::Red; }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toNumber($obj);
+    }
+
     public function testNullThrows(): void {
         $this->expectException(InvalidArgumentException::class);
         Caster::toNumber(null);
@@ -98,4 +114,12 @@ final class CasterToNumberTest extends TestCase {
 enum CasterToNumberTestLevel: int {
     case Low = 1;
     case High = 2;
+}
+
+enum CasterToNumberTestCode: string {
+    case Pi = '3.14';
+}
+
+enum CasterToNumberTestColor {
+    case Red;
 }

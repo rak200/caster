@@ -11,6 +11,7 @@ use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToEnum;
 use Rak200\Caster\Contracts\ToInt;
 use Stringable;
+use TypeError;
 
 /**
  * Tests for Caster::toEnum().

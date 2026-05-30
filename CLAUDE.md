@@ -46,7 +46,7 @@ Every contract extends `Castable` (a marker interface). `ToString` additionally 
 | `ToBool`       | `Rak200\Caster\Contracts`  | `toBool()`       | `bool`               |
 | `ToCollection` | `Rak200\Caster\Contracts`  | `toCollection()` | `iterable`           |
 | `ToDateTime`   | `Rak200\Caster\Contracts`  | `toDateTime()`   | `\DateTimeImmutable` |
-| `ToEnum`       | `Rak200\Caster\Contracts`  | `toEnum()`       | `\BackedEnum`        |
+| `ToEnum`       | `Rak200\Caster\Contracts`  | `toEnum()`       | `\UnitEnum`          |
 | `ToFloat`      | `Rak200\Caster\Contracts`  | `toFloat()`      | `float`              |
 | `ToInt`        | `Rak200\Caster\Contracts`  | `toInt()`        | `int`                |
 | `ToJson`       | `Rak200\Caster\Contracts`  | `toJson()`       | `string`             |
@@ -65,11 +65,11 @@ Universal converters (mirror `toString()`'s pattern; throw `InvalidArgumentExcep
 - `toArray(mixed $value): array`
 - `toNumber(mixed $value): \BcMath\Number`
 - `toDateTime(mixed $value): \DateTimeImmutable` (int values interpreted as Unix timestamps)
-- `toEnum(mixed $value, class-string<\BackedEnum> $enumClass): \BackedEnum`
+- `toEnum(mixed $value, class-string<\UnitEnum> $enumClass): \UnitEnum` (backed enums use `from()`; pure enums match by case name)
 - `toCollection(mixed $value): iterable`
 
 Other:
-- `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\BackedEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`)
+- `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\UnitEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`)
 - `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value; delegates to `toJson()` for `ToJson` objects; uses `JSON_THROW_ON_ERROR`
 
 ## Running tests

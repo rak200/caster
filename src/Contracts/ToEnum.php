@@ -4,19 +4,21 @@ declare(strict_types=1);
 
 namespace Rak200\Caster\Contracts;
 
-use BackedEnum;
+use UnitEnum;
 
 /**
- * Contract for objects that can be represented as a backed enum case.
+ * Contract for objects that can be represented as an enum case.
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
 interface ToEnum extends Castable {
 
     /**
-     * Return a BackedEnum representation of the object.
+     * Return an enum representation of the object.
      *
-     * @return BackedEnum The object's value as a backed enum case.
+     * @return UnitEnum The object's value as an enum case. Implementers may
+     *                  return a {@see \BackedEnum} (covariant) when a backing
+     *                  value is meaningful.
      */
-    public function toEnum(): BackedEnum;
+    public function toEnum(): UnitEnum;
 }

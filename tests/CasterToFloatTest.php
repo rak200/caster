@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rak200\Caster\Tests;
 
+use BackedEnum;
 use BcMath\Number;
 use DateTimeImmutable;
 use InvalidArgumentException;
@@ -11,10 +12,12 @@ use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToBool;
 use Rak200\Caster\Contracts\ToDateTime;
+use Rak200\Caster\Contracts\ToEnum;
 use Rak200\Caster\Contracts\ToFloat;
 use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToNumber;
 use Stringable;
+use UnitEnum;
 
 /**
  * Tests for Caster::toFloat().
@@ -83,8 +86,52 @@ final class CasterToFloatTest extends TestCase {
         $this->assertEqualsWithDelta(1748366400.123456, Caster::toFloat($obj), 0.0001);
     }
 
+    public function testToEnumIntBacked(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): BackedEnum { return CasterToFloatTestLevel::High; }
+        };
+        $this->assertSame(2.0, Caster::toFloat($obj));
+    }
+
+    public function testToEnumStringBackedNumeric(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): BackedEnum { return CasterToFloatTestCode::Half; }
+        };
+        $this->assertSame(0.5, Caster::toFloat($obj));
+    }
+
+    public function testToEnumStringBackedNonNumericThrows(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): BackedEnum { return CasterToFloatTestCode::Text; }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toFloat($obj);
+    }
+
+    public function testToEnumPureThrows(): void {
+        $obj = new class implements ToEnum {
+            public function toEnum(): UnitEnum { return CasterToFloatTestColor::Red; }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toFloat($obj);
+    }
+
     public function testNullThrows(): void {
         $this->expectException(InvalidArgumentException::class);
         Caster::toFloat(null);
     }
+}
+
+enum CasterToFloatTestLevel: int {
+    case Low = 1;
+    case High = 2;
+}
+
+enum CasterToFloatTestCode: string {
+    case Half = '0.5';
+    case Text = 'nope';
+}
+
+enum CasterToFloatTestColor {
+    case Red;
 }
