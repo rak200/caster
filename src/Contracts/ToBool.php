@@ -9,12 +9,12 @@ namespace Rak200\Caster\Contracts;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToBool extends Castable {
-
+interface ToBool extends Castable
+{
     /**
      * Return a boolean representation of the object.
      *
-     * @return bool The object's boolean value.
+     * @return bool the object's boolean value
      */
     public function toBool(): bool;
 }

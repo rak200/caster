@@ -11,12 +11,12 @@ use BcMath\Number;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToNumber extends Castable {
-
+interface ToNumber extends Castable
+{
     /**
      * Return a BcMath\Number representation of the object.
      *
-     * @return Number The object's value as an arbitrary-precision number.
+     * @return Number the object's value as an arbitrary-precision number
      */
     public function toNumber(): Number;
 }

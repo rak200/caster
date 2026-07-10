@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-07-10
+
+### Added
+- Per-class reference under `docs/`: `docs/caster.md` (resolution order and runnable examples for every converter), `docs/contracts.md` (the `Castable` marker and the 10 typed contracts, one section each) and the `docs/README.md` index
+- README badges: CI, Codecov coverage, latest tag, PHP version, PHPStan level, code style, license, SemVer, Keep a Changelog
+- `ext-bcmath` declared explicitly in `require` (used directly by `Caster::toNumber()`)
+- PHP-CS-Fixer `^3.75` as a dev dependency, configured with the shared `@PhpCsFixer`-preset ruleset in `.php-cs-fixer.dist.php`; new `cs-check` / `cs-fix` composer scripts
+
+### Changed
+- Bumped `rak200/utils` from `^1.8` to `^3.0`; call sites migrated to the 2.0.0 canonical names (`Type::isInstance`, `Type::isSubclass`)
+- PHPStan raised from level 8 to level **max** and now analyses `tests/` too; config renamed `phpstan.neon` → `phpstan.neon.dist`, dev dependency bumped to `^2.1`
+- Whole codebase reformatted under the `@PhpCsFixer` preset (no behaviour change)
+- CI workflow rewritten as `ci.yml` (replacing `tests.yml`): `permissions: contents: read`, `composer validate`, `fail-fast: false` matrix over PHP 8.4/8.5, CS check on the floor job, PHPStan on every job, PHPUnit with `pcov` coverage and Codecov upload
+- Composer scripts aligned with the shared conventions: `test` is plain `phpunit` (the Windows `-c php.ini` pin is no longer needed), `analyse` renamed to `phpstan` (with `--memory-limit=512M`)
+- `phpunit.xml` now sets `failOnWarning` and `failOnRisky`
+- README rewritten: lean overview + installation (the VCS instructions now list **both** required repositories — caster and utils, since Composer reads `repositories` only from the root project), full reference moved to `docs/`, hardcoded version line replaced by the tag badge
+- `CLAUDE.md` now imports the shared rak200 PHP conventions file and keeps only caster-specific content
+
+### Fixed
+- `Castable` docblock now lists all 10 typed sub-interfaces (was naming only the original 6)
+
 ## [1.3.0] - 2026-05-30
 
 ### Added
@@ -78,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[1.4.0]: https://github.com/rak200/caster/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/rak200/caster/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/rak200/caster/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/rak200/caster/compare/1.0.1...1.1.0

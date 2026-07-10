@@ -11,12 +11,12 @@ use DateTimeImmutable;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToDateTime extends Castable {
-
+interface ToDateTime extends Castable
+{
     /**
      * Return a DateTimeImmutable representation of the object.
      *
-     * @return DateTimeImmutable The object's value as an immutable date and time.
+     * @return DateTimeImmutable the object's value as an immutable date and time
      */
     public function toDateTime(): DateTimeImmutable;
 }

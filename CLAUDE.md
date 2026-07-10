@@ -2,62 +2,51 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+The **cross-library rak200 PHP conventions** (baseline & tooling, dev dependencies, CI, code style, naming, `use function` inventory, first-class callables, correctness-over-efficiency, safe defaults, testing, versioning, README badges) are shared and imported below. This file keeps only what is specific to **caster**.
+
+@~/.claude/rak200-php-conventions.md
+
 ## Project Overview
 
-**rak200/caster** is a standalone PHP 8.4+ library providing type casting contracts (interfaces) and a `Caster` utility class. It has no dependencies beyond PHP itself.
+**rak200/caster** is a PHP 8.4+ library providing type casting contracts (interfaces) and a `Caster` utility class that converts arbitrary values to those types.
+
+**Deliberate deviation from the shared "no runtime Composer dependencies" rule:** caster requires **`rak200/utils` (`^3.0`)** at runtime — the converters are built on its `Type`, `Enum`, `Num` and `Json` helpers (the prefer-lib-over-native rule applied across libraries). utils is consumed through a `"type": "vcs"` repository entry until both libraries land on Packagist (see Roadmap); consumers must therefore list **both** VCS repositories (Composer reads `repositories` only from the root project — the README's Installation section shows this).
 
 ## Structure
 
 ```
 caster/
-├── .gitignore
-├── composer.json
-├── phpunit.xml
+├── docs/             # per-class reference pages (caster.md, contracts.md + index)
 ├── src/
-│   ├── Caster.php           # Static utility class
-│   └── Contracts/
-│       ├── Castable.php     # Base marker interface
-│       ├── ToArray.php
-│       ├── ToBool.php
-│       ├── ToCollection.php
-│       ├── ToDateTime.php
-│       ├── ToEnum.php
-│       ├── ToFloat.php
-│       ├── ToInt.php
-│       ├── ToJson.php
-│       ├── ToNumber.php
-│       └── ToString.php     # extends Castable + Stringable
-└── tests/
-    ├── CasterBcMathTest.php
-    ├── CasterCastTest.php
-    ├── CasterToJsonTest.php
-    └── CasterToStringTest.php
+│   ├── Caster.php    # static utility class (final)
+│   └── Contracts/    # Castable marker + the 10 To* contracts (table below)
+└── tests/            # split per converter — see Testing
 ```
 
-All classes live under the `Rak200\Caster` namespace (PSR-4, mapped from `src/`).
+Production classes live under `Rak200\Caster\` (PSR-4 from `src/`); test classes live under `Rak200\Caster\Tests\` (PSR-4 from `tests/`, dev-only).
 
 ## Contracts
 
-Every contract extends `Castable` (a marker interface). `ToString` additionally extends PHP's built-in `Stringable`.
+All contracts live under `Rak200\Caster\Contracts`. Every contract extends `Castable` (a marker interface); `ToString` additionally extends PHP's built-in `Stringable`.
 
-| Interface      | Namespace                  | Method           | Return               |
-|----------------|----------------------------|------------------|----------------------|
-| `ToArray`      | `Rak200\Caster\Contracts`  | `toArray()`      | `array`              |
-| `ToBool`       | `Rak200\Caster\Contracts`  | `toBool()`       | `bool`               |
-| `ToCollection` | `Rak200\Caster\Contracts`  | `toCollection()` | `iterable`           |
-| `ToDateTime`   | `Rak200\Caster\Contracts`  | `toDateTime()`   | `\DateTimeImmutable` |
-| `ToEnum`       | `Rak200\Caster\Contracts`  | `toEnum()`       | `\UnitEnum`          |
-| `ToFloat`      | `Rak200\Caster\Contracts`  | `toFloat()`      | `float`              |
-| `ToInt`        | `Rak200\Caster\Contracts`  | `toInt()`        | `int`                |
-| `ToJson`       | `Rak200\Caster\Contracts`  | `toJson()`       | `string`             |
-| `ToNumber`     | `Rak200\Caster\Contracts`  | `toNumber()`     | `\BcMath\Number`     |
-| `ToString`     | `Rak200\Caster\Contracts`  | `__toString()`   | `string`             |
+| Interface      | Method           | Return               |
+|----------------|------------------|----------------------|
+| `ToArray`      | `toArray()`      | `array`              |
+| `ToBool`       | `toBool()`       | `bool`               |
+| `ToCollection` | `toCollection()` | `iterable`           |
+| `ToDateTime`   | `toDateTime()`   | `\DateTimeImmutable` |
+| `ToEnum`       | `toEnum()`       | `\UnitEnum`          |
+| `ToFloat`      | `toFloat()`      | `float`              |
+| `ToInt`        | `toInt()`        | `int`                |
+| `ToJson`       | `toJson()`       | `string`             |
+| `ToNumber`     | `toNumber()`     | `\BcMath\Number`     |
+| `ToString`     | `__toString()`   | `string`             |
 
 ## Caster class
 
 `Rak200\Caster\Caster` is `final` with the following static methods:
 
-Universal converters (mirror `toString()`'s pattern; throw `InvalidArgumentException` for unconvertible types):
+Universal converters (throw `InvalidArgumentException` for unconvertible types):
 - `toString(mixed $value): string`
 - `toInt(mixed $value): int`
 - `toFloat(mixed $value): float`
@@ -65,82 +54,42 @@ Universal converters (mirror `toString()`'s pattern; throw `InvalidArgumentExcep
 - `toArray(mixed $value): array`
 - `toNumber(mixed $value): \BcMath\Number`
 - `toDateTime(mixed $value): \DateTimeImmutable` (int values interpreted as Unix timestamps)
-- `toEnum(mixed $value, class-string<\UnitEnum> $enumClass): \UnitEnum` (backed enums use `from()`; pure enums match by case name)
+- `toEnum(mixed $value, class-string<\UnitEnum> $enumClass = \UnitEnum::class): \UnitEnum` (backed enums match by backing value, pure enums by case name; enum instances pass through — the bare `\UnitEnum::class` default only accepts values that already are enum cases)
 - `toCollection(mixed $value): iterable`
 
 Other:
 - `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\UnitEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`)
-- `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value; delegates to `toJson()` for `ToJson` objects; uses `JSON_THROW_ON_ERROR`
+- `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value via utils' `Json::encode` (always `JSON_THROW_ON_ERROR`); `ToJson` objects delegate to `toJson()` ignoring `$flags`; other `Castable`s go through `cast()` first
 
-## Running tests
+## Testing
 
-```bash
-composer test
-# or directly:
-php -c "A:\Program Files\php\php.ini" vendor/bin/phpunit
-```
+General testing conventions are in the shared file. caster specifics:
 
-The explicit `-c` flag is required on Windows because PHPUnit's xdebug-handler restarts
-PHP without the ini path when xdebug is listed but not found, dropping extensions like mbstring.
+- PHPUnit is configured via `phpunit.xml` with a single `Unit` suite.
+- caster has a single production class, so instead of one test file per class the suite is split per converter: one `CasterTo<Type>Test.php` per universal converter, plus `CasterCastTest.php` (`cast()` dispatch) and `CasterBcMathTest.php` (BcMath edge cases).
 
-## Versioning
+## Versioning & releases
 
-Follows [Semantic Versioning](https://semver.org). Current version: **1.0.0**
+SemVer policy and the release checklist live in the shared conventions. caster delta: not on Packagist yet — consumers add this repo (and `rak200/utils`) as `"type": "vcs"` and resolve versions from git tags.
 
-When releasing a new version:
-1. Update `"version"` in `composer.json`
-2. Update `CHANGELOG.md`: add a new `## [x.y.z] - YYYY-MM-DD` section with `### Added / Changed / Fixed / Removed` entries and a comparison link at the bottom
-3. Update the version reference in `README.md`
-4. Commit and push
-5. Create and push a git tag matching the version: `git tag x.y.z && git push origin x.y.z`
+## Roadmap
 
-Consumers using `"type": "vcs"` in their `composer.json` resolve versions from git tags.
-
----
-
-## Improvement Roadmap
-
-List of suggestions raised on 2026-05-27. Update as items are implemented.
-
-### 🔴 High priority
-
-- [x] **`LICENSE` file** — required for legal third-party use (suggested: MIT)
-- [x] **PHPStan in CI** — add static analysis at level 8+ to the GitHub Actions workflow
+Pending work only — items are **pruned** on delivery (shared release checklist); `CHANGELOG.md` is the historical record.
 
 ### 🟡 Medium priority
 
-- [x] **Universal methods on `Caster`** — mirror `toString()` for the remaining types:
-  - `toInt(mixed): int`
-  - `toFloat(mixed): float`
-  - `toBool(mixed): bool`
-  - `toArray(mixed): array`
-  - `toNumber(mixed): \BcMath\Number`
-  - `toDateTime(mixed): \DateTimeImmutable`
-  - `toEnum(mixed, class-string<\BackedEnum> $enumClass): \BackedEnum` (target enum required to disambiguate)
-  - `toCollection(mixed): iterable`
-- [ ] **`tryTo*` methods** — variants that return `null` instead of throwing:
-  - `tryToString(mixed): ?string`
-  - `tryToInt(mixed): ?int`
-  - etc.
+- [ ] **`tryTo*` methods** — variants that return `null` instead of throwing (`tryToString(mixed): ?string`, `tryToInt(mixed): ?int`, …)
 - [ ] **`CasterInterface`** — interface for the `Caster` class to enable dependency injection and mocking in consumer tests
 - [ ] **`Caster::can(mixed $value, string $contract): bool`** — checks whether a value supports a given contract
 
 ### 🟢 Low priority
 
-- [x] **New contracts**:
-  - `ToNumber extends Castable` → `toNumber(): \BcMath\Number` (arbitrary-precision numeric)
-  - `ToDateTime extends Castable` → `toDateTime(): \DateTimeImmutable`
-  - `ToEnum extends Castable` → `toEnum(): \BackedEnum`
-  - `ToCollection extends Castable` → `toCollection(): iterable`
 - [ ] **`Caster::all(array $values, string $method): array`** — applies a conversion method in batch
 - [ ] **Custom converter registry** — `Caster::register('uuid', fn($v) => ...)` + `Caster::convert($value, 'uuid')`
 - [ ] **Fluent API** — `Caster::of($value)->toString()->trim()->upper()` (see section below)
 - [ ] **Mutation testing** — integrate Infection to validate test quality
-- [ ] **PHP CS Fixer** — enforce consistent style (`@PER-CS2.0`)
-- [ ] **Code coverage** — integrate Codecov/Coveralls with a README badge
-- [ ] **Publish on Packagist** — for installation via `composer require rak200/caster`
+- [ ] **Publish on Packagist** — removes the VCS-repository requirement from consumers (requires publishing `rak200/utils` first, since caster depends on it at runtime)
 - [ ] **`CONTRIBUTING.md`** — contributor guide
-- [ ] **README badges** — version, CI status, PHP version
 
 ### Fluent API — Details
 

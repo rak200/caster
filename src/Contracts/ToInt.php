@@ -9,12 +9,12 @@ namespace Rak200\Caster\Contracts;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToInt extends Castable {
-
+interface ToInt extends Castable
+{
     /**
      * Return an integer representation of the object.
      *
-     * @return int The object's numeric value as an integer.
+     * @return int the object's numeric value as an integer
      */
     public function toInt(): int;
 }

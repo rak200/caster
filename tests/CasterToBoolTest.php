@@ -20,103 +20,148 @@ use Stringable;
  * Tests for Caster::toBool().
  *
  * @author rak200 <rak.ricardo@windowslive.com>
+ *
+ * @internal
+ *
+ * @coversNothing
  */
-final class CasterToBoolTest extends TestCase {
-    public function testBoolTrue(): void {
+final class CasterToBoolTest extends TestCase
+{
+    public function testBoolTrue(): void
+    {
         $this->assertTrue(Caster::toBool(true));
     }
 
-    public function testIntZero(): void {
+    public function testIntZero(): void
+    {
         $this->assertFalse(Caster::toBool(0));
     }
 
-    public function testIntNonZero(): void {
+    public function testIntNonZero(): void
+    {
         $this->assertTrue(Caster::toBool(42));
     }
 
-    public function testFloatZero(): void {
+    public function testFloatZero(): void
+    {
         $this->assertFalse(Caster::toBool(0.0));
     }
 
-    public function testStringEmpty(): void {
+    public function testStringEmpty(): void
+    {
         $this->assertFalse(Caster::toBool(''));
     }
 
-    public function testStringZero(): void {
+    public function testStringZero(): void
+    {
         $this->assertFalse(Caster::toBool('0'));
     }
 
-    public function testStringOther(): void {
+    public function testStringOther(): void
+    {
         $this->assertTrue(Caster::toBool('hello'));
     }
 
-    public function testStringable(): void {
+    public function testStringable(): void
+    {
         $obj = new class implements Stringable {
-            public function __toString(): string { return 'x'; }
+            public function __toString(): string
+            {
+                return 'x';
+            }
         };
         $this->assertTrue(Caster::toBool($obj));
     }
 
-    public function testToBool(): void {
+    public function testToBool(): void
+    {
         $obj = new class implements ToBool {
-            public function toBool(): bool { return true; }
+            public function toBool(): bool
+            {
+                return true;
+            }
         };
         $this->assertTrue(Caster::toBool($obj));
     }
 
-    public function testToInt(): void {
+    public function testToInt(): void
+    {
         $obj = new class implements ToInt {
-            public function toInt(): int { return 1; }
+            public function toInt(): int
+            {
+                return 1;
+            }
         };
         $this->assertTrue(Caster::toBool($obj));
     }
 
-    public function testToFloat(): void {
+    public function testToFloat(): void
+    {
         $obj = new class implements ToFloat {
-            public function toFloat(): float { return 0.0; }
+            public function toFloat(): float
+            {
+                return 0.0;
+            }
         };
         $this->assertFalse(Caster::toBool($obj));
     }
 
-    public function testToNumber(): void {
+    public function testToNumber(): void
+    {
         $obj = new class implements ToNumber {
-            public function toNumber(): Number { return new Number('0'); }
+            public function toNumber(): Number
+            {
+                return new Number('0');
+            }
         };
         $this->assertFalse(Caster::toBool($obj));
     }
 
-    public function testEmptyArray(): void {
+    public function testEmptyArray(): void
+    {
         $this->assertFalse(Caster::toBool([]));
     }
 
-    public function testNonEmptyArray(): void {
+    public function testNonEmptyArray(): void
+    {
         $this->assertTrue(Caster::toBool([1]));
     }
 
-    public function testToArrayEmpty(): void {
+    public function testToArrayEmpty(): void
+    {
         $obj = new class implements ToArray {
-            public function toArray(): array { return []; }
+            public function toArray(): array
+            {
+                return [];
+            }
         };
         $this->assertFalse(Caster::toBool($obj));
     }
 
-    public function testToCollectionEmpty(): void {
+    public function testToCollectionEmpty(): void
+    {
         $obj = new class implements ToCollection {
-            public function toCollection(): iterable { return []; }
+            public function toCollection(): iterable
+            {
+                return [];
+            }
         };
         $this->assertFalse(Caster::toBool($obj));
     }
 
-    public function testToCollectionGenerator(): void {
+    public function testToCollectionGenerator(): void
+    {
         $obj = new class implements ToCollection {
-            public function toCollection(): iterable {
+            public function toCollection(): iterable
+            {
                 yield 1;
             }
         };
         $this->assertTrue(Caster::toBool($obj));
     }
 
-    public function testNullThrows(): void {
+    public function testNullThrows(): void
+    {
         $this->expectException(InvalidArgumentException::class);
         Caster::toBool(null);
     }

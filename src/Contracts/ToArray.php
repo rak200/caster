@@ -9,12 +9,12 @@ namespace Rak200\Caster\Contracts;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToArray extends Castable {
-
+interface ToArray extends Castable
+{
     /**
      * Return an array representation of the object.
      *
-     * @return array<mixed> The object's data as a plain PHP array.
+     * @return array<mixed> the object's data as a plain PHP array
      */
     public function toArray(): array;
 }

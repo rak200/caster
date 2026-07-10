@@ -1,4 +1,8 @@
 /vendor/
-/.claude/
-composer.lock
+/composer.lock
 .phpunit.result.cache
+.phpunit.cache/
+.phpstan.cache/
+.php-cs-fixer.cache
+.claude/
+/phpstan.neon

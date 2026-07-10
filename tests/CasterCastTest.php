@@ -30,68 +30,105 @@ use Rak200\Caster\Contracts\ToString;
  * is respected when an object implements multiple contracts.
  *
  * @author rak200 <rak.ricardo@windowslive.com>
+ *
+ * @internal
+ *
+ * @coversNothing
  */
-final class CasterCastTest extends TestCase {
+final class CasterCastTest extends TestCase
+{
     /** ToJson objects return their toJson() string. */
-    public function testToJson(): void {
+    public function testToJson(): void
+    {
         $obj = new class implements ToJson {
-            public function toJson(): string { return '{"key":"value"}'; }
+            public function toJson(): string
+            {
+                return '{"key":"value"}';
+            }
         };
         $this->assertSame('{"key":"value"}', Caster::cast($obj));
     }
 
     /** ToString objects return their __toString() string. */
-    public function testToString(): void {
+    public function testToString(): void
+    {
         $obj = new class implements ToString {
-            public function __toString(): string { return 'hello'; }
+            public function __toString(): string
+            {
+                return 'hello';
+            }
         };
         $this->assertSame('hello', Caster::cast($obj));
     }
 
     /** ToInt objects return their toInt() integer. */
-    public function testToInt(): void {
+    public function testToInt(): void
+    {
         $obj = new class implements ToInt {
-            public function toInt(): int { return 42; }
+            public function toInt(): int
+            {
+                return 42;
+            }
         };
         $this->assertSame(42, Caster::cast($obj));
     }
 
     /** ToFloat objects return their toFloat() float. */
-    public function testToFloat(): void {
+    public function testToFloat(): void
+    {
         $obj = new class implements ToFloat {
-            public function toFloat(): float { return 3.14; }
+            public function toFloat(): float
+            {
+                return 3.14;
+            }
         };
         $this->assertSame(3.14, Caster::cast($obj));
     }
 
     /** ToBool objects returning true resolve to boolean true. */
-    public function testToBoolTrue(): void {
+    public function testToBoolTrue(): void
+    {
         $obj = new class implements ToBool {
-            public function toBool(): bool { return true; }
+            public function toBool(): bool
+            {
+                return true;
+            }
         };
         $this->assertTrue(Caster::cast($obj));
     }
 
     /** ToBool objects returning false resolve to boolean false. */
-    public function testToBoolFalse(): void {
+    public function testToBoolFalse(): void
+    {
         $obj = new class implements ToBool {
-            public function toBool(): bool { return false; }
+            public function toBool(): bool
+            {
+                return false;
+            }
         };
         $this->assertFalse(Caster::cast($obj));
     }
 
     /** ToArray objects return their toArray() array. */
-    public function testToArray(): void {
+    public function testToArray(): void
+    {
         $obj = new class implements ToArray {
-            public function toArray(): array { return [1, 2, 3]; }
+            public function toArray(): array
+            {
+                return [1, 2, 3];
+            }
         };
         $this->assertSame([1, 2, 3], Caster::cast($obj));
     }
 
     /** ToNumber objects return their toNumber() BcMath\Number. */
-    public function testToNumber(): void {
+    public function testToNumber(): void
+    {
         $obj = new class implements ToNumber {
-            public function toNumber(): Number { return new Number('3.14'); }
+            public function toNumber(): Number
+            {
+                return new Number('3.14');
+            }
         };
         $result = Caster::cast($obj);
         $this->assertInstanceOf(Number::class, $result);
@@ -99,9 +136,11 @@ final class CasterCastTest extends TestCase {
     }
 
     /** ToDateTime objects return their toDateTime() DateTimeImmutable. */
-    public function testToDateTime(): void {
+    public function testToDateTime(): void
+    {
         $obj = new class implements ToDateTime {
-            public function toDateTime(): DateTimeImmutable {
+            public function toDateTime(): DateTimeImmutable
+            {
                 return new DateTimeImmutable('2026-05-27T12:00:00+00:00');
             }
         };
@@ -111,52 +150,85 @@ final class CasterCastTest extends TestCase {
     }
 
     /** ToEnum objects return their toEnum() BackedEnum case. */
-    public function testToEnum(): void {
+    public function testToEnum(): void
+    {
         $obj = new class implements ToEnum {
-            public function toEnum(): BackedEnum { return CasterCastTestStatus::Active; }
+            public function toEnum(): BackedEnum
+            {
+                return CasterCastTestStatus::Active;
+            }
         };
         $result = Caster::cast($obj);
         $this->assertSame(CasterCastTestStatus::Active, $result);
     }
 
     /** ToCollection objects return their toCollection() iterable. */
-    public function testToCollection(): void {
+    public function testToCollection(): void
+    {
         $obj = new class implements ToCollection {
-            public function toCollection(): iterable { return [1, 2, 3]; }
+            public function toCollection(): iterable
+            {
+                return [1, 2, 3];
+            }
         };
         $this->assertSame([1, 2, 3], Caster::cast($obj));
     }
 
     /** Objects implementing only the marker Castable interface throw InvalidArgumentException. */
-    public function testPlainCastableThrows(): void {
+    public function testPlainCastableThrows(): void
+    {
         $obj = new class implements Castable {};
         $this->expectException(InvalidArgumentException::class);
         Caster::cast($obj);
     }
 
     /** ToJson takes priority over ToString when both are implemented. */
-    public function testToJsonTakesPriorityOverToString(): void {
+    public function testToJsonTakesPriorityOverToString(): void
+    {
         $obj = new class implements ToJson, ToString {
-            public function toJson(): string { return '"json"'; }
-            public function __toString(): string { return 'string'; }
+            public function toJson(): string
+            {
+                return '"json"';
+            }
+
+            public function __toString(): string
+            {
+                return 'string';
+            }
         };
         $this->assertSame('"json"', Caster::cast($obj));
     }
 
     /** ToJson takes priority over ToInt when both are implemented. */
-    public function testToJsonTakesPriorityOverToInt(): void {
+    public function testToJsonTakesPriorityOverToInt(): void
+    {
         $obj = new class implements ToJson, ToInt {
-            public function toJson(): string { return '"json"'; }
-            public function toInt(): int { return 0; }
+            public function toJson(): string
+            {
+                return '"json"';
+            }
+
+            public function toInt(): int
+            {
+                return 0;
+            }
         };
         $this->assertSame('"json"', Caster::cast($obj));
     }
 
     /** ToInt takes priority over ToFloat when both are implemented. */
-    public function testToIntTakesPriorityOverToFloat(): void {
+    public function testToIntTakesPriorityOverToFloat(): void
+    {
         $obj = new class implements ToInt, ToFloat {
-            public function toInt(): int { return 5; }
-            public function toFloat(): float { return 5.0; }
+            public function toInt(): int
+            {
+                return 5;
+            }
+
+            public function toFloat(): float
+            {
+                return 5.0;
+            }
         };
         $this->assertSame(5, Caster::cast($obj));
     }
@@ -165,7 +237,8 @@ final class CasterCastTest extends TestCase {
 /**
  * Backed enum used exclusively by CasterCastTest::testToEnum().
  */
-enum CasterCastTestStatus: string {
+enum CasterCastTestStatus: string
+{
     case Active = 'active';
     case Inactive = 'inactive';
 }

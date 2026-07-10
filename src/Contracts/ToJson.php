@@ -12,12 +12,12 @@ namespace Rak200\Caster\Contracts;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToJson extends Castable {
-
+interface ToJson extends Castable
+{
     /**
      * Return a JSON string representation of the object.
      *
-     * @return string A valid JSON-encoded string.
+     * @return string a valid JSON-encoded string
      */
     public function toJson(): string;
 }

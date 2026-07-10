@@ -11,8 +11,8 @@ use UnitEnum;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToEnum extends Castable {
-
+interface ToEnum extends Castable
+{
     /**
      * Return an enum representation of the object.
      *

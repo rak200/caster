@@ -1,8 +1,39 @@
-# Caster
+# rak200/caster
+
+[![CI](https://github.com/rak200/caster/actions/workflows/ci.yml/badge.svg)](https://github.com/rak200/caster/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/rak200/caster/graph/badge.svg)](https://codecov.io/gh/rak200/caster)
+[![Latest tag](https://img.shields.io/github/v/tag/rak200/caster?sort=semver)](https://github.com/rak200/caster/tags)
+[![PHP](https://img.shields.io/badge/php-8.4%2B-777bb4?logo=php&logoColor=white)](https://www.php.net/)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%20max-brightgreen?logo=php&logoColor=white)](https://phpstan.org/)
+[![Code style](https://img.shields.io/badge/code%20style-PHP--CS--Fixer-blue?logo=php&logoColor=white)](.php-cs-fixer.dist.php)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![SemVer](https://img.shields.io/badge/semver-2.0.0-blue)](https://semver.org/spec/v2.0.0.html)
+[![Keep a Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-orange)](CHANGELOG.md)
 
 Type casting contracts and utilities for PHP 8.4+.
 
+Objects declare which types they can be reduced to by implementing small single-method contracts (`ToInt`, `ToString`, `ToJson`, …); the static `Caster` class converts **any** value — primitives and contract implementors alike — to the requested type, throwing `InvalidArgumentException` instead of silently coercing garbage.
+
+## Requirements
+
+- PHP 8.4+
+- Extension: `bcmath` (for `BcMath\Number` support in `toNumber`). Bundled with PHP and enabled by default on most distributions.
+- Runtime dependency: [`rak200/utils`](https://github.com/rak200/utils) (installed automatically).
+
 ## Installation
+
+Not published on Packagist — install straight from the GitHub repository as a Composer VCS package. Because `rak200/utils` is also VCS-only and Composer only reads `repositories` from the root project, the consuming project must list **both** repositories:
+
+```json
+{
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/rak200/caster" },
+        { "type": "vcs", "url": "https://github.com/rak200/utils" }
+    ]
+}
+```
+
+then require it as usual:
 
 ```bash
 composer require rak200/caster
@@ -10,114 +41,78 @@ composer require rak200/caster
 
 ## Contracts
 
-All contracts live under `Rak200\Caster\Contracts` and extend `Castable`.
+All contracts live under `Rak200\Caster\Contracts` and extend the `Castable` marker interface.
 
-| Interface  | Method              | Return   |
-|------------|---------------------|----------|
-| `ToArray`  | `toArray()`         | `array`  |
-| `ToBool`   | `toBool()`          | `bool`   |
-| `ToFloat`  | `toFloat()`         | `float`  |
-| `ToInt`    | `toInt()`           | `int`    |
-| `ToJson`   | `toJson()`          | `string` |
-| `ToString` | `__toString()`      | `string` |
+| Interface      | Method           | Return               |
+|----------------|------------------|----------------------|
+| `ToArray`      | `toArray()`      | `array`              |
+| `ToBool`       | `toBool()`       | `bool`               |
+| `ToCollection` | `toCollection()` | `iterable`           |
+| `ToDateTime`   | `toDateTime()`   | `\DateTimeImmutable` |
+| `ToEnum`       | `toEnum()`       | `\UnitEnum`          |
+| `ToFloat`      | `toFloat()`      | `float`              |
+| `ToInt`        | `toInt()`        | `int`                |
+| `ToJson`       | `toJson()`       | `string`             |
+| `ToNumber`     | `toNumber()`     | `\BcMath\Number`     |
+| `ToString`     | `__toString()`   | `string`             |
+
+`ToString` additionally extends PHP's built-in `Stringable`.
 
 ## Usage
 
-### Implementing a contract
-
 ```php
-use Rak200\Caster\Contracts\ToArray;
-use Rak200\Caster\Contracts\ToBool;
+use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToFloat;
 use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToJson;
-use Rak200\Caster\Contracts\ToString;
 
-class Money implements ToInt, ToFloat, ToJson {
-    public function __construct(
-        private int $cents,
-        private string $currency,
-    ) {}
+final class Money implements ToInt, ToFloat, ToJson
+{
+    public function __construct(private int $cents) {}
 
-    public function toInt(): int   { return $this->cents; }
-    public function toFloat(): float { return $this->cents / 100; }
-    public function toJson(): string {
-        return json_encode(['cents' => $this->cents, 'currency' => $this->currency]);
+    public function toInt(): int
+    {
+        return $this->cents;
+    }
+
+    public function toFloat(): float
+    {
+        return $this->cents / 100;
+    }
+
+    public function toJson(): string
+    {
+        return json_encode(['cents' => $this->cents], JSON_THROW_ON_ERROR);
     }
 }
 
-class Status implements ToBool, ToString {
-    public function __construct(private bool $active) {}
+$money = new Money(1999);
 
-    public function toBool(): bool      { return $this->active; }
-    public function __toString(): string { return $this->active ? 'active' : 'inactive'; }
-}
+// Universal converters accept anything — primitives or contract implementors:
+Caster::toInt($money);        // 1999
+Caster::toFloat($money);      // 19.99
+Caster::toInt('17');          // 17
+Caster::toString(true);       // 'true'
+Caster::toDateTime(0);        // DateTimeImmutable @1970-01-01T00:00:00+00:00
+Caster::toString(null);       // throws InvalidArgumentException
 
-class Tag implements ToArray {
-    public function __construct(private string $name, private string $color) {}
+// cast() dispatches a Castable to its highest-priority contract:
+Caster::cast($money);         // '{"cents":1999}' — ToJson outranks ToInt/ToFloat
 
-    public function toArray(): array { return ['name' => $this->name, 'color' => $this->color]; }
-}
+// toJson() encodes any value (JSON_PRETTY_PRINT by default, always JSON_THROW_ON_ERROR):
+Caster::toJson(['a' => 1], 0);   // '{"a":1}'
 ```
 
-### Converting values with `Caster`
+Universal converters: `toString`, `toInt`, `toFloat`, `toBool`, `toArray`, `toNumber`, `toDateTime`, `toEnum`, `toCollection` — plus the `cast()` dispatcher and the `toJson()` encoder.
 
-```php
-use Rak200\Caster\Caster;
+## Documentation
 
-// Primitives
-Caster::toString(42);           // "42"
-Caster::toString(true);         // "true"
-Caster::toString([1, 2, 3]);    // JSON string
-
-// Objects implementing a contract
-$money = new Money(1999, 'BRL');
-Caster::cast($money);           // '{"cents":1999,"currency":"BRL"}' — ToJson wins
-Caster::toString($money);       // same, via cast()
-
-$status = new Status(true);
-Caster::cast($status);          // 'active' — ToString wins over ToBool
-Caster::toString($status);      // 'active'
-
-// JSON encoding
-Caster::toJson(['key' => 'value']);   // pretty-printed JSON
-Caster::toJson($money);              // delegates to toJson()
-Caster::toJson($money, 0);           // compact JSON (flags ignored for ToJson objects)
-```
-
-### `Caster::cast()` dispatch order
-
-When an object implements multiple contracts, `cast()` resolves the **first** match:
-
-1. `ToJson`   → `toJson()`
-2. `ToString` → `__toString()`
-3. `ToInt`    → `toInt()`
-4. `ToFloat`  → `toFloat()`
-5. `ToBool`   → `toBool()`
-6. `ToArray`  → `toArray()`
-
-### Error handling
-
-`Caster::toString()` throws `InvalidArgumentException` for types it cannot convert
-(e.g. `null`, `resource`). `Caster::toJson()` throws `\JsonException` on encoding failure.
-
-```php
-// Safe pattern
-$result = $value !== null ? Caster::toString($value) : 'default';
-
-// Or catch explicitly
-try {
-    $str = Caster::toString($value);
-} catch (\InvalidArgumentException $e) {
-    $str = '(unknown)';
-}
-```
+Per-method reference with runnable examples lives in [`docs/`](docs/README.md).
 
 ## Versioning
 
-This library follows [Semantic Versioning](https://semver.org).  
-Current version: **1.3.0** — see [CHANGELOG.md](CHANGELOG.md) for release history.
+Follows [Semantic Versioning](https://semver.org). The public API is stable from `1.0.0` onwards: breaking changes require a major version bump. See [CHANGELOG.md](CHANGELOG.md) for release history.
 
-## License
+## Licence
 
 MIT

@@ -9,12 +9,12 @@ namespace Rak200\Caster\Contracts;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToFloat extends Castable {
-
+interface ToFloat extends Castable
+{
     /**
      * Return a float representation of the object.
      *
-     * @return float The object's numeric value as a float.
+     * @return float the object's numeric value as a float
      */
     public function toFloat(): float;
 }

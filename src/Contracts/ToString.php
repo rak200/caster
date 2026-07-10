@@ -14,12 +14,12 @@ use Stringable;
  *
  * @author rak200 <rak.ricardo@windowslive.com>
  */
-interface ToString extends Castable, Stringable {
-
+interface ToString extends Castable, Stringable
+{
     /**
      * Return a string representation of the object.
      *
-     * @return string The object's string value.
+     * @return string the object's string value
      */
     public function __toString(): string;
 }

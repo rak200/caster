@@ -15,37 +15,54 @@ use Rak200\Caster\Contracts\ToCollection;
  * Tests for Caster::toCollection().
  *
  * @author rak200 <rak.ricardo@windowslive.com>
+ *
+ * @internal
+ *
+ * @coversNothing
  */
-final class CasterToCollectionTest extends TestCase {
-    public function testArrayPassthrough(): void {
+final class CasterToCollectionTest extends TestCase
+{
+    public function testArrayPassthrough(): void
+    {
         $this->assertSame([1, 2, 3], Caster::toCollection([1, 2, 3]));
     }
 
-    public function testTraversablePassthrough(): void {
+    public function testTraversablePassthrough(): void
+    {
         $iterator = new ArrayIterator(['a', 'b']);
         $this->assertSame($iterator, Caster::toCollection($iterator));
     }
 
-    public function testToCollection(): void {
+    public function testToCollection(): void
+    {
         $obj = new class implements ToCollection {
-            public function toCollection(): iterable { return ['k' => 'v']; }
+            public function toCollection(): iterable
+            {
+                return ['k' => 'v'];
+            }
         };
         $this->assertSame(['k' => 'v'], Caster::toCollection($obj));
     }
 
-    public function testToArray(): void {
+    public function testToArray(): void
+    {
         $obj = new class implements ToArray {
-            public function toArray(): array { return [10, 20]; }
+            public function toArray(): array
+            {
+                return [10, 20];
+            }
         };
         $this->assertSame([10, 20], Caster::toCollection($obj));
     }
 
-    public function testStringThrows(): void {
+    public function testStringThrows(): void
+    {
         $this->expectException(InvalidArgumentException::class);
         Caster::toCollection('hello');
     }
 
-    public function testNullThrows(): void {
+    public function testNullThrows(): void
+    {
         $this->expectException(InvalidArgumentException::class);
         Caster::toCollection(null);
     }
