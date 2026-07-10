@@ -75,7 +75,7 @@ final class Caster
             $value instanceof ToEnum => (string) Enum::scalar($value->toEnum()),
             $value instanceof ToCollection => self::toJson([...$value->toCollection()]),
             Type::isArray($value) || Type::isObject($value) => self::toJson($value),
-            default => throw new InvalidArgumentException('Cannot stringify '.Type::of($value)),
+            default => throw new InvalidArgumentException('Cannot stringify ' . Type::of($value)),
         };
     }
 
@@ -101,7 +101,7 @@ final class Caster
             Type::isFloat($value) || Type::isBool($value) => (int) $value,
             Type::isStr($value) => (int) $value,
             $value instanceof Stringable => (int) (string) $value,
-            default => throw new InvalidArgumentException('Cannot convert '.Type::of($value).' to int'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to int'),
         };
     }
 
@@ -127,7 +127,7 @@ final class Caster
             Type::isInt($value) || Type::isBool($value) => (float) $value,
             Type::isStr($value) => (float) $value,
             $value instanceof Stringable => (float) (string) $value,
-            default => throw new InvalidArgumentException('Cannot convert '.Type::of($value).' to float'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to float'),
         };
     }
 
@@ -154,7 +154,7 @@ final class Caster
             Type::isArray($value) => $value !== [],
             $value instanceof ToArray => $value->toArray() !== [],
             $value instanceof ToCollection => [...$value->toCollection()] !== [],
-            default => throw new InvalidArgumentException('Cannot convert '.Type::of($value).' to bool'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to bool'),
         };
     }
 
@@ -174,7 +174,7 @@ final class Caster
             $value instanceof ToArray => $value->toArray(),
             $value instanceof ToCollection => [...$value->toCollection()],
             $value instanceof Traversable => [...$value],
-            default => throw new InvalidArgumentException('Cannot convert '.Type::of($value).' to array'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to array'),
         };
     }
 
@@ -199,7 +199,7 @@ final class Caster
             Type::isBool($value) => new Number($value ? '1' : '0'),
             Num::is($value) => Num::parseNumber((string) $value),
             $value instanceof Stringable && Num::is($v = (string) $value) => Num::parseNumber($v),
-            default => throw new InvalidArgumentException('Cannot convert '.Type::of($value).' to Number'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to Number'),
         };
     }
 
@@ -220,11 +220,11 @@ final class Caster
             $value instanceof DateTimeImmutable => $value,
             $value instanceof DateTime => DateTimeImmutable::createFromMutable($value),
             $value instanceof ToDateTime => $value->toDateTime(),
-            $value instanceof ToInt => new DateTimeImmutable('@'.$value->toInt()),
-            Type::isInt($value) => new DateTimeImmutable('@'.$value),
+            $value instanceof ToInt => new DateTimeImmutable('@' . $value->toInt()),
+            Type::isInt($value) => new DateTimeImmutable('@' . $value),
             Type::isStr($value) => new DateTimeImmutable($value),
             $value instanceof Stringable => new DateTimeImmutable((string) $value),
-            default => throw new InvalidArgumentException('Cannot convert '.Type::of($value).' to DateTimeImmutable'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to DateTimeImmutable'),
         };
     }
 
@@ -270,7 +270,7 @@ final class Caster
         };
         $scalar = $intValue ?? $stringValue;
         if (Type::isNull($scalar)) {
-            throw new InvalidArgumentException('Cannot convert '.Type::of($value).' to '.$enumClass);
+            throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to ' . $enumClass);
         }
 
         return (Type::isSubclass($enumClass, BackedEnum::class)
@@ -295,7 +295,7 @@ final class Caster
             $value instanceof Traversable => $value,
             $value instanceof ToCollection => $value->toCollection(),
             $value instanceof ToArray => $value->toArray(),
-            default => throw new InvalidArgumentException('Cannot convert '.Type::of($value).' to iterable'),
+            default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to iterable'),
         };
     }
 
@@ -333,7 +333,7 @@ final class Caster
             $value instanceof ToEnum => $value->toEnum(),
             $value instanceof ToCollection => $value->toCollection(),
             $value instanceof ToArray => $value->toArray(),
-            default => throw new InvalidArgumentException('Cannot cast '.Type::of($value)),
+            default => throw new InvalidArgumentException('Cannot cast ' . Type::of($value)),
         };
     }
 
