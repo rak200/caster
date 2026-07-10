@@ -1,0 +1,7 @@
+# Revisions to skip in `git blame` — bulk, no-behaviour-change reformatting.
+# Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub picks this file up automatically.
+
+# style: one space around the concatenation operator (concat_space override)
+d97fff484fdcc8affc4d390c2164fb2c0254d63e
