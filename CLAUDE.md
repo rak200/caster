@@ -82,10 +82,6 @@ SemVer policy and the release checklist live in the shared conventions. caster d
 
 Pending work only — items are **pruned** on delivery (shared release checklist); `CHANGELOG.md` is the historical record.
 
-### 🟡 Medium priority
-
-- [ ] **`Caster::can(mixed $value, string $contract): bool`** — checks whether a value supports a given contract
-
 ### 🟢 Low priority
 
 - [ ] **`Caster::all(array $values, string $method): array`** — applies a conversion method in batch
