@@ -10,7 +10,7 @@ The **cross-library rak200 PHP conventions** (baseline & tooling, dev dependenci
 
 **rak200/caster** is a PHP 8.4+ library providing type casting contracts (interfaces) and a `Caster` utility class that converts arbitrary values to those types.
 
-**Deliberate deviation from the shared "no runtime Composer dependencies" rule:** caster requires **`rak200/utils` (`^3.0`)** at runtime — the converters are built on its `Type`, `Enum`, `Num` and `Json` helpers (the prefer-lib-over-native rule applied across libraries). utils is consumed through a `"type": "vcs"` repository entry until both libraries land on Packagist (see Roadmap); consumers must therefore list **both** VCS repositories (Composer reads `repositories` only from the root project — the README's Installation section shows this).
+**Deliberate deviation from the shared "no runtime Composer dependencies" rule:** caster requires **`rak200/utils` (`^4.0`)** at runtime — the converters are built on its `Type`, `Enum`, `Num`, `Iter` and `Json` helpers (the prefer-lib-over-native rule applied across libraries). utils is consumed through a `"type": "vcs"` repository entry until both libraries land on Packagist (see Roadmap); consumers must therefore list **both** VCS repositories (Composer reads `repositories` only from the root project — the README's Installation section shows this).
 
 ## Structure
 
@@ -48,18 +48,18 @@ All contracts live under `Rak200\Caster\Contracts`. Every contract extends `Cast
 
 Universal converters (throw `InvalidArgumentException` for unconvertible types):
 - `toString(mixed $value): string`
-- `toInt(mixed $value): int`
-- `toFloat(mixed $value): float`
+- `toInt(mixed $value): int` (strings/Stringables must be strictly numeric — no surrounding whitespace; non-numeric throws instead of coercing to 0)
+- `toFloat(mixed $value): float` (same strict numeric-string rule as `toInt`)
 - `toBool(mixed $value): bool`
 - `toArray(mixed $value): array`
 - `toNumber(mixed $value): \BcMath\Number`
 - `toDateTime(mixed $value): \DateTimeImmutable` (int values interpreted as Unix timestamps)
-- `toEnum(mixed $value, class-string<\UnitEnum> $enumClass = \UnitEnum::class): \UnitEnum` (backed enums match by backing value, pure enums by case name; enum instances pass through — the bare `\UnitEnum::class` default only accepts values that already are enum cases)
+- `toEnum(mixed $value, class-string<\UnitEnum> $enumClass = \UnitEnum::class): \UnitEnum` (backed enums match by backing value — the scalar is coerced to the backing type first, so `'2'` matches an int-backed case — then any enum by case name; enum instances pass through — the bare `\UnitEnum::class` default only accepts values that already are enum cases)
 - `toCollection(mixed $value): iterable`
 
 Other:
 - `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\UnitEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`)
-- `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value via utils' `Json::encode` (always `JSON_THROW_ON_ERROR`); `ToJson` objects delegate to `toJson()` ignoring `$flags`; other `Castable`s go through `cast()` first
+- `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value via utils' `Json::encode` (always `JSON_THROW_ON_ERROR`); `ToJson` objects delegate to `toJson()` ignoring `$flags`; other `Castable`s go through `cast()` first; `Traversable`s (including `cast()` results) are materialised before encoding
 
 ## Testing
 

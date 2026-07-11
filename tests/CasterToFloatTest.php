@@ -169,6 +169,24 @@ final class CasterToFloatTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toFloat(null);
     }
+
+    public function testStringNonNumericThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toFloat('abc');
+    }
+
+    /** format('U.u') would glue negative seconds to the fraction: -1 . 750000 → -1.75 instead of -0.25. */
+    public function testToDateTimePreEpochWithMicroseconds(): void
+    {
+        $obj = new class implements ToDateTime {
+            public function toDateTime(): DateTimeImmutable
+            {
+                return new DateTimeImmutable('1969-12-31 23:59:59.750000 UTC');
+            }
+        };
+        $this->assertEqualsWithDelta(-0.25, Caster::toFloat($obj), 0.0001);
+    }
 }
 
 enum CasterToFloatTestLevel: int

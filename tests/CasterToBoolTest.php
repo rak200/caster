@@ -14,6 +14,7 @@ use Rak200\Caster\Contracts\ToCollection;
 use Rak200\Caster\Contracts\ToFloat;
 use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToNumber;
+use RuntimeException;
 use Stringable;
 
 /**
@@ -164,5 +165,41 @@ final class CasterToBoolTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         Caster::toBool(null);
+    }
+
+    /** Zero is false at any scale — (bool) '0.00' string truthiness would say true. */
+    public function testNumberZeroWithScale(): void
+    {
+        $this->assertFalse(Caster::toBool(new Number('0.00')));
+    }
+
+    public function testNumberNonZero(): void
+    {
+        $this->assertTrue(Caster::toBool(new Number('0.01')));
+    }
+
+    public function testToNumberZeroWithScale(): void
+    {
+        $obj = new class implements ToNumber {
+            public function toNumber(): Number
+            {
+                return new Number('0.00');
+            }
+        };
+        $this->assertFalse(Caster::toBool($obj));
+    }
+
+    /** Emptiness is decided from the first element alone; the iterable is never materialised. */
+    public function testToCollectionEmptinessIsLazy(): void
+    {
+        $obj = new class implements ToCollection {
+            public function toCollection(): iterable
+            {
+                yield 1;
+
+                throw new RuntimeException('must not be reached');
+            }
+        };
+        $this->assertTrue(Caster::toBool($obj));
     }
 }

@@ -1,7 +1,7 @@
 {
     "name": "rak200/caster",
     "description": "Type casting contracts and utilities for PHP 8.4+",
-    "version": "1.4.0",
+    "version": "2.0.0",
     "type": "library",
     "license": "MIT",
     "keywords": ["casting", "type-casting", "contracts", "interfaces", "php84"],
@@ -26,7 +26,7 @@
     "require": {
         "php": "^8.4",
         "ext-bcmath": "*",
-        "rak200/utils": "^3.0"
+        "rak200/utils": "^4.0"
     },
     "autoload": {
         "psr-4": {

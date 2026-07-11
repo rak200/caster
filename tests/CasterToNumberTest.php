@@ -153,6 +153,47 @@ final class CasterToNumberTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toNumber(null);
     }
+
+    public function testNanThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toNumber(NAN);
+    }
+
+    public function testInfinityThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toNumber(INF);
+    }
+
+    /** (string) 0.0000001 is '1.0E-7' — must be expanded, not fed raw to the Number constructor. */
+    public function testFloatInScientificNotationRange(): void
+    {
+        $this->assertTrue(Caster::toNumber(0.0000001) == new Number('0.0000001'));
+    }
+
+    public function testToFloatInScientificNotationRange(): void
+    {
+        $obj = new class implements ToFloat {
+            public function toFloat(): float
+            {
+                return 0.0000001;
+            }
+        };
+        $this->assertTrue(Caster::toNumber($obj) == new Number('0.0000001'));
+    }
+
+    public function testToFloatNanThrows(): void
+    {
+        $obj = new class implements ToFloat {
+            public function toFloat(): float
+            {
+                return NAN;
+            }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toNumber($obj);
+    }
 }
 
 enum CasterToNumberTestLevel: int

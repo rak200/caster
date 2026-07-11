@@ -22,6 +22,7 @@ use Rak200\Caster\Contracts\ToJson;
 use Rak200\Caster\Contracts\ToNumber;
 use Rak200\Caster\Contracts\ToString;
 use Rak200\Utils\Enum;
+use Rak200\Utils\Iter;
 use Rak200\Utils\Json;
 use Rak200\Utils\Num;
 use Rak200\Utils\Type;
@@ -73,7 +74,7 @@ final class Caster
             $value instanceof ToBool => $value->toBool() ? 'true' : 'false',
             $value instanceof ToDateTime => $value->toDateTime()->format('c'),
             $value instanceof ToEnum => (string) Enum::scalar($value->toEnum()),
-            $value instanceof ToCollection => self::toJson([...$value->toCollection()]),
+            $value instanceof ToCollection => self::toJson($value->toCollection()),
             Type::isArray($value) || Type::isObject($value) => self::toJson($value),
             default => throw new InvalidArgumentException('Cannot stringify ' . Type::of($value)),
         };
@@ -81,6 +82,9 @@ final class Caster
 
     /**
      * Convert any value to an integer.
+     *
+     * Strings (and Stringables) must be strictly numeric — no surrounding
+     * whitespace; non-numeric strings throw instead of coercing to 0.
      *
      * @param mixed $value the value to convert
      *
@@ -99,14 +103,17 @@ final class Caster
             $value instanceof ToDateTime => $value->toDateTime()->getTimestamp(),
             $value instanceof ToEnum && Enum::isBackedInt($e = $value->toEnum()) => (int) Enum::scalar($e),
             Type::isFloat($value) || Type::isBool($value) => (int) $value,
-            Type::isStr($value) => (int) $value,
-            $value instanceof Stringable => (int) (string) $value,
+            Type::isStr($value) && Num::is($value) => (int) $value,
+            $value instanceof Stringable && Num::is($v = (string) $value) => (int) (string) $v,
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to int'),
         };
     }
 
     /**
      * Convert any value to a float.
+     *
+     * Strings (and Stringables) must be strictly numeric — no surrounding
+     * whitespace; non-numeric strings throw instead of coercing to 0.0.
      *
      * @param mixed $value the value to convert
      *
@@ -122,17 +129,22 @@ final class Caster
             $value instanceof ToInt => (float) $value->toInt(),
             $value instanceof ToNumber => (float) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1.0 : 0.0,
-            $value instanceof ToDateTime => (float) $value->toDateTime()->format('U.u'),
+            // getTimestamp() + positive microseconds: format('U.u') would glue
+            // the negative-seconds part to the fraction and skew pre-epoch instants.
+            $value instanceof ToDateTime => ($dt = $value->toDateTime())->getTimestamp() + (int) $dt->format('u') / 1e6,
             $value instanceof ToEnum && Num::is($s = Enum::scalar($value->toEnum())) => Num::parseFloat((string) $s),
             Type::isInt($value) || Type::isBool($value) => (float) $value,
-            Type::isStr($value) => (float) $value,
-            $value instanceof Stringable => (float) (string) $value,
+            Type::isStr($value) && Num::is($value) => (float) $value,
+            $value instanceof Stringable && Num::is($v = (string) $value) => (float) (string) $v,
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to float'),
         };
     }
 
     /**
      * Convert any value to a boolean.
+     *
+     * A zero {@see Number} is false regardless of scale ('0.00' included);
+     * iterables convert to their emptiness without being materialised.
      *
      * @param mixed $value the value to convert
      *
@@ -144,16 +156,18 @@ final class Caster
     {
         return match (true) {
             Type::isBool($value) => $value,
+            // numeric comparison, not string truthiness: (bool) '0.00' is true
+            $value instanceof Number => $value != new Number('0'),
             $value instanceof ToBool => $value->toBool(),
             $value instanceof ToInt => (bool) $value->toInt(),
             $value instanceof ToFloat => (bool) $value->toFloat(),
-            $value instanceof ToNumber => (bool) (string) $value->toNumber(),
+            $value instanceof ToNumber => $value->toNumber() != new Number('0'),
             Type::isInt($value) || Type::isFloat($value) => (bool) $value,
             Type::isStr($value) => (bool) $value,
             $value instanceof Stringable => (bool) (string) $value,
             Type::isArray($value) => $value !== [],
             $value instanceof ToArray => $value->toArray() !== [],
-            $value instanceof ToCollection => [...$value->toCollection()] !== [],
+            $value instanceof ToCollection => Iter::isNotEmpty($value->toCollection()),
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to bool'),
         };
     }
@@ -181,6 +195,9 @@ final class Caster
     /**
      * Convert any value to a BcMath\Number.
      *
+     * Non-finite floats (NAN, INF) throw — they have no arbitrary-precision
+     * representation.
+     *
      * @param mixed $value the value to convert
      *
      * @return Number the arbitrary-precision number representation of $value
@@ -192,12 +209,12 @@ final class Caster
         return match (true) {
             $value instanceof Number => $value,
             $value instanceof ToNumber => $value->toNumber(),
-            $value instanceof ToInt => new Number((string) $value->toInt()),
-            $value instanceof ToFloat => new Number((string) $value->toFloat()),
+            $value instanceof ToInt => new Number($value->toInt()),
+            $value instanceof ToFloat => Num::parseNumber($value->toFloat()),
             $value instanceof ToBool => new Number($value->toBool() ? '1' : '0'),
-            $value instanceof ToEnum && Num::is($s = Enum::scalar($value->toEnum())) => Num::parseNumber((string) $s),
+            $value instanceof ToEnum && Num::is($s = Enum::scalar($value->toEnum())) => Num::parseNumber($s),
             Type::isBool($value) => new Number($value ? '1' : '0'),
-            Num::is($value) => Num::parseNumber((string) $value),
+            Num::is($value) => Num::parseNumber($value),
             $value instanceof Stringable && Num::is($v = (string) $value) => Num::parseNumber($v),
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to Number'),
         };
@@ -245,8 +262,10 @@ final class Caster
      */
     public static function toEnum(mixed $value, string $enumClass = UnitEnum::class): UnitEnum
     {
-        // spread operator to overpass staticMethod.alreadyNarrowedType error from PHPStan
-        if (!Type::isA(...[$enumClass, UnitEnum::class])) {
+        // Runtime guard for untyped callers; PHPStan trusts the class-string<T>
+        // annotation and so considers the check redundant.
+        // @phpstan-ignore staticMethod.alreadyNarrowedType
+        if (!Type::isA($enumClass, UnitEnum::class)) {
             throw new InvalidArgumentException("{$enumClass} is not a UnitEnum");
         }
         if (Type::isInstance($value, $enumClass)) {
@@ -273,8 +292,17 @@ final class Caster
             throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to ' . $enumClass);
         }
 
-        return (Type::isSubclass($enumClass, BackedEnum::class)
-            ? $enumClass::tryFrom($scalar) : null)
+        $case = null;
+        if (Type::isSubclass($enumClass, BackedEnum::class) && ($cases = $enumClass::cases()) !== []) {
+            // tryFrom() is strictly typed: coerce the scalar to the backing type
+            // first, so '2' matches an int-backed case and 2 a string-backed '2'.
+            $backingValue = Type::isInt($cases[0]->value)
+                ? ($intValue ?? Num::parseIntOrNull((string) $stringValue))
+                : (string) $scalar;
+            $case = $backingValue === null ? null : $enumClass::tryFrom($backingValue);
+        }
+
+        return $case
             ?? Enum::tryFromName($enumClass, (string) $stringValue)
             ?? throw new InvalidArgumentException("'{$scalar}' is not a case of {$enumClass}");
     }
@@ -344,6 +372,10 @@ final class Caster
      * - Other Castable objects: cast() first, then Json::encode().
      * - Everything else: Json::encode() directly.
      *
+     * Traversables (including those produced by cast()) are materialised
+     * before encoding — json_encode() does not iterate them and would
+     * silently emit '{}'.
+     *
      * JSON_THROW_ON_ERROR is always added to $flags by Json::encode(), so
      * encoding failures throw a JsonException rather than returning false.
      *
@@ -361,6 +393,9 @@ final class Caster
         }
         if ($value instanceof Castable) {
             $value = self::cast($value);
+        }
+        if ($value instanceof Traversable) {
+            $value = [...$value];
         }
 
         return Json::encode($value, $flags);

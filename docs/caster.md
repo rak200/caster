@@ -61,14 +61,16 @@ Caster::toString(new Current());  // 'active'
 Caster::toInt(mixed $value): int
 ```
 
-Resolution order: `int` as-is → `ToInt` → `ToFloat` truncated by `(int)` → `ToNumber` via its string form → `ToBool` as `1` / `0` → `ToDateTime` as its **Unix timestamp** → int-backed `ToEnum` as its backing value → `float` / `bool` / `string` / `Stringable` via `(int)`.
+Resolution order: `int` as-is → `ToInt` → `ToFloat` truncated by `(int)` → `ToNumber` via its string form → `ToBool` as `1` / `0` → `ToDateTime` as its **Unix timestamp** → int-backed `ToEnum` as its backing value → `float` / `bool` via `(int)` → strictly numeric `string` / `Stringable` via `(int)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0`.
 
 ```php
 Caster::toInt(42);        // 42
 Caster::toInt(3.9);       // 3   (truncation, not rounding)
 Caster::toInt(true);      // 1
 Caster::toInt('17');      // 17
-Caster::toInt('abc');     // 0   (PHP (int) semantics for non-numeric strings)
+Caster::toInt('3.9');     // 3   (numeric string, truncated)
+Caster::toInt('abc');     // throws InvalidArgumentException (not numeric)
+Caster::toInt(' 5 ');     // throws InvalidArgumentException (surrounding whitespace)
 Caster::toInt(null);      // throws InvalidArgumentException
 Caster::toInt([1]);       // throws InvalidArgumentException
 ```
@@ -85,13 +87,14 @@ A string-backed or pure `ToEnum` does **not** match the enum branch — it falls
 Caster::toFloat(mixed $value): float
 ```
 
-Resolution order: `float` as-is → `ToFloat` → `ToInt` via `(float)` → `ToNumber` via its string form → `ToBool` as `1.0` / `0.0` → `ToDateTime` as epoch seconds **with microseconds** (`format('U.u')`) → `ToEnum` whose scalar is numeric, parsed by `Num::parseFloat` → `int` / `bool` / `string` / `Stringable` via `(float)`.
+Resolution order: `float` as-is → `ToFloat` → `ToInt` via `(float)` → `ToNumber` via its string form → `ToBool` as `1.0` / `0.0` → `ToDateTime` as epoch seconds **with microseconds** (`getTimestamp()` plus the microsecond fraction — correct for pre-epoch instants too) → `ToEnum` whose scalar is numeric, parsed by `Num::parseFloat` → `int` / `bool` via `(float)` → strictly numeric `string` / `Stringable` via `(float)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0.0`.
 
 ```php
 Caster::toFloat(1.5);      // 1.5
 Caster::toFloat(42);       // 42.0
 Caster::toFloat('3.14');   // 3.14
 Caster::toFloat(false);    // 0.0
+Caster::toFloat('abc');    // throws InvalidArgumentException (not numeric)
 Caster::toFloat(null);     // throws InvalidArgumentException
 ```
 
@@ -105,16 +108,21 @@ Caster::toFloat(null);     // throws InvalidArgumentException
 Caster::toBool(mixed $value): bool
 ```
 
-Resolution order: `bool` as-is → `ToBool` → `ToInt` / `ToFloat` via `(bool)` → `ToNumber` via the truthiness of its string form → `int` / `float` / `string` / `Stringable` via `(bool)` (PHP semantics: `''`, `'0'`, `0`, `0.0` are false) → `array` / `ToArray` / `ToCollection` **emptiness** (`!== []`).
+Resolution order: `bool` as-is → `BcMath\Number` compared numerically to zero → `ToBool` → `ToInt` / `ToFloat` via `(bool)` → `ToNumber` compared numerically to zero → `int` / `float` / `string` / `Stringable` via `(bool)` (PHP semantics: `''`, `'0'`, `0`, `0.0` are false) → `array` / `ToArray` **emptiness** (`!== []`) → `ToCollection` **emptiness**, decided lazily from the first element (the iterable is never materialised).
+
+A zero `Number` is false at **any scale** — string truthiness would call `'0.00'` true.
 
 ```php
-Caster::toBool(1);         // true
-Caster::toBool(0.0);       // false
-Caster::toBool('0');       // false
-Caster::toBool('false');   // true  (non-empty, non-'0' string — PHP semantics)
-Caster::toBool([]);        // false (empty array)
-Caster::toBool([0]);       // true  (non-empty array)
-Caster::toBool(null);      // throws InvalidArgumentException
+use BcMath\Number;
+
+Caster::toBool(1);                  // true
+Caster::toBool(0.0);                // false
+Caster::toBool('0');                // false
+Caster::toBool('false');            // true  (non-empty, non-'0' string — PHP semantics)
+Caster::toBool(new Number('0.00')); // false (zero at any scale)
+Caster::toBool([]);                 // false (empty array)
+Caster::toBool([0]);                // true  (non-empty array)
+Caster::toBool(null);               // throws InvalidArgumentException
 ```
 
 [↑ Back to top](#caster)
@@ -147,14 +155,18 @@ Caster::toNumber(mixed $value): BcMath\Number
 
 Arbitrary-precision conversion. Resolution order: `BcMath\Number` as-is → `ToNumber` → `ToInt` / `ToFloat` / `ToBool` wrapped into a `Number` → `ToEnum` whose scalar is numeric → `bool` as `1` / `0` → any strict numeric value (`int`, `float`, numeric string — no surrounding whitespace) via `Num::parseNumber` → `Stringable` whose string form is numeric.
 
+Floats are expanded to their exact decimal form, so values whose string form is scientific notation (`1.0E-7`) convert cleanly. Non-finite floats (`NAN`, `INF`) throw `InvalidArgumentException` — they have no arbitrary-precision representation.
+
 ```php
 use BcMath\Number;
 
 Caster::toNumber(new Number('1.23'));   // the same Number instance
 Caster::toNumber(42);                   // Number('42')
 Caster::toNumber('0.1');                // Number('0.1') — exact, no float rounding
+Caster::toNumber(0.0000001);            // Number('0.00000010') — scientific form expanded
 Caster::toNumber(true);                 // Number('1')
 Caster::toNumber('12 ');                // throws InvalidArgumentException (not strictly numeric)
+Caster::toNumber(NAN);                  // throws InvalidArgumentException (non-finite)
 ```
 
 [↑ Back to top](#caster)
@@ -191,7 +203,7 @@ Converts to a case of `$enumClass`. Resolution order:
 1. `$enumClass` must be an enum (or `UnitEnum` itself) — otherwise throws.
 2. A value that already **is** a case of `$enumClass` passes through.
 3. A `ToEnum` object whose case is an instance of `$enumClass` passes through.
-4. Otherwise a scalar is extracted (`ToInt` / `int` / `Stringable` / `string`) and matched: **backed enums** by backing value (`tryFrom`), then **pure enums** by case name.
+4. Otherwise a scalar is extracted (`ToInt` / `int` / `Stringable` / `string`) and matched: **backed enums** by backing value — the scalar is coerced to the backing type first, so `'2'` matches an int-backed case and `2` a string-backed `'2'` — then any enum by **case name**.
 
 With the bare `UnitEnum::class` default, only steps 2–3 can succeed — pass a concrete enum class to convert scalars.
 
@@ -201,6 +213,8 @@ enum Suit { case Hearts; case Spades; }
 
 Caster::toEnum(Priority::Low, Priority::class);   // Priority::Low (pass-through)
 Caster::toEnum(2, Priority::class);               // Priority::High (backing value)
+Caster::toEnum('2', Priority::class);             // Priority::High (numeric string coerced)
+Caster::toEnum('Low', Priority::class);           // Priority::Low (case name)
 Caster::toEnum('Hearts', Suit::class);            // Suit::Hearts (case name)
 Caster::toEnum(Suit::Hearts);                     // Suit::Hearts (already an enum case)
 Caster::toEnum('Clubs', Suit::class);             // throws InvalidArgumentException
@@ -288,12 +302,14 @@ Encodes any value as JSON:
 
 - **`ToJson` objects** delegate directly to their `toJson()` — `$flags` is **ignored**, the object controls its own encoding.
 - **Other `Castable` objects** go through [`cast()`](#cast) first, then the result is encoded.
+- **`Traversable`s** — plain ones and those produced by `cast()` (e.g. a `ToCollection` generator) — are **materialised** before encoding; `json_encode()` does not iterate them and would silently emit `'{}'`.
 - **Everything else** is encoded directly via utils' `Json::encode`, which always adds `JSON_THROW_ON_ERROR` — encoding failures throw `JsonException`, never return `false`.
 
 ```php
 Caster::toJson(['a' => 1]);      // "{\n    \"a\": 1\n}" — pretty-printed by default
 Caster::toJson(['a' => 1], 0);   // '{"a":1}' — compact
 Caster::toJson(new Money(1999)); // '{"cents":1999}' — ToJson object, flags ignored
+Caster::toJson(new ArrayIterator([1, 2]), 0);  // '[1,2]' — Traversable materialised
 Caster::toJson(fopen('php://memory', 'r'));   // throws JsonException (resource)
 ```
 

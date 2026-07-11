@@ -178,6 +178,35 @@ final class CasterToIntTest extends TestCase
         };
         $this->assertSame(7, Caster::toInt($obj));
     }
+
+    public function testStringDecimalTruncates(): void
+    {
+        $this->assertSame(3, Caster::toInt('3.9'));
+    }
+
+    public function testStringNonNumericThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt('abc');
+    }
+
+    public function testStringWhitespacePaddedThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt(' 5 ');
+    }
+
+    public function testStringableNonNumericThrows(): void
+    {
+        $obj = new class implements Stringable {
+            public function __toString(): string
+            {
+                return 'abc';
+            }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt($obj);
+    }
 }
 
 enum CasterToIntTestLevel: int

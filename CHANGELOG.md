@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-07-11
+
+Correctness release: every defect found in a full-project review, fixed at the right layer (several fixes landed in `rak200/utils` 3.1.0/4.0.0 and are consumed here).
+
+### Changed
+- **Breaking:** `Caster::toInt()` and `Caster::toFloat()` now require strictly numeric strings/Stringables (no surrounding whitespace) and throw `InvalidArgumentException` instead of silently coercing non-numeric input to `0` / `0.0`
+- `Caster::toBool()` compares `BcMath\Number` values (direct instances and `ToNumber` results) numerically to zero — a zero `Number` is false at any scale (`'0.00'` included), where string truthiness said true
+- `Caster::toBool()` decides `ToCollection` emptiness lazily via utils' `Iter::isNotEmpty` instead of materialising the whole iterable (unbounded generators no longer hang)
+- Bumped the `rak200/utils` requirement from `^3.0` to `^4.0`: `Iter::isNotEmpty` (lazy `ToCollection` emptiness), the widened `Num::parseNumber` (float-accepting, non-finite-safe — `toNumber()` now delegates to it directly with no local exception-mapping helpers), and utils' new SPL exception contract, whose invalid-input failures are already `InvalidArgumentException` and therefore match `Caster`'s documented contract natively
+- `Caster::toEnum()` coerces the extracted scalar to the enum's backing type before `tryFrom()`, so `'2'` matches an int-backed case and `2` a string-backed `'2'`; case-name matching now also reachable for backed enums given a non-numeric string
+- PHP-CS-Fixer: `concat_space` overridden to one space around the concatenation operator (`'x ' . $y`, never the preset's glued form); the bulk reformat commit is recorded in the new `.git-blame-ignore-revs`, which GitHub honours automatically
+
+### Fixed
+- `Caster::toEnum()` crashed with `TypeError` when the scalar's type didn't match the enum's backing type (e.g. numeric string against an int-backed enum)
+- `Caster::toJson()` silently encoded `Traversable`s (plain ones and those produced by `cast()`, e.g. a `ToCollection` generator) as `'{}'` — they are now materialised before encoding
+- `Caster::toFloat()` returned wrong values for pre-epoch `ToDateTime` instants with a fractional-second component (`format('U.u')` glued negative seconds to positive microseconds)
+- `Caster::toNumber()` leaked a `ValueError` for `ToFloat` values whose string form is scientific notation (e.g. `1.0E-7`); they are now expanded exactly via `Num::parseNumber`
+- `Caster::toNumber()` leaked a `RuntimeException` (plus a PHP 8.5 coercion warning) for `NAN` / `INF`; non-finite floats now throw `InvalidArgumentException`
+
 ## [1.4.0] - 2026-07-10
 
 ### Added
@@ -99,6 +118,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[2.0.0]: https://github.com/rak200/caster/compare/1.4.0...2.0.0
 [1.4.0]: https://github.com/rak200/caster/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/rak200/caster/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/rak200/caster/compare/1.1.0...1.2.0

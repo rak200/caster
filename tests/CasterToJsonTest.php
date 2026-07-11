@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Rak200\Caster\Tests;
 
+use ArrayIterator;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToArray;
 use Rak200\Caster\Contracts\ToBool;
+use Rak200\Caster\Contracts\ToCollection;
 use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToJson;
 use stdClass;
@@ -123,5 +125,27 @@ final class CasterToJsonTest extends TestCase
             }
         };
         $this->assertSame('{"raw":true}', Caster::toJson($obj, 0));
+    }
+
+    /** json_encode() does not iterate Traversable — a ToCollection generator must not encode as '{}'. */
+    public function testToCollectionCastableIsMaterialised(): void
+    {
+        $obj = new class implements ToCollection {
+            public function toCollection(): iterable
+            {
+                yield 1;
+
+                yield 2;
+
+                yield 3;
+            }
+        };
+        $this->assertSame('[1,2,3]', Caster::toJson($obj, 0));
+    }
+
+    /** Plain Traversables are materialised too, preserving keys. */
+    public function testTraversableIsMaterialised(): void
+    {
+        $this->assertSame('{"a":1}', Caster::toJson(new ArrayIterator(['a' => 1]), 0));
     }
 }

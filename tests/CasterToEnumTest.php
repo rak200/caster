@@ -102,6 +102,43 @@ final class CasterToEnumTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toEnum(null, CasterToEnumTestStatus::class);
     }
+
+    /** tryFrom() is strictly typed: '2' must still match the int-backed case, not TypeError. */
+    public function testNumericStringMatchesIntBackedEnum(): void
+    {
+        $this->assertSame(
+            CasterToEnumTestLevel::High,
+            Caster::toEnum('2', CasterToEnumTestLevel::class),
+        );
+    }
+
+    public function testCaseNameMatchesIntBackedEnum(): void
+    {
+        $this->assertSame(
+            CasterToEnumTestLevel::Low,
+            Caster::toEnum('Low', CasterToEnumTestLevel::class),
+        );
+    }
+
+    public function testIntMatchesStringBackedEnumWithNumericBacking(): void
+    {
+        $this->assertSame(
+            CasterToEnumTestCode::Ten,
+            Caster::toEnum(10, CasterToEnumTestCode::class),
+        );
+    }
+
+    public function testNonMatchingNumericStringThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toEnum('9', CasterToEnumTestLevel::class);
+    }
+
+    public function testNonMatchingIntAgainstStringBackedEnumThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toEnum(7, CasterToEnumTestStatus::class);
+    }
 }
 
 enum CasterToEnumTestStatus: string
@@ -114,4 +151,9 @@ enum CasterToEnumTestLevel: int
 {
     case Low = 1;
     case High = 2;
+}
+
+enum CasterToEnumTestCode: string
+{
+    case Ten = '10';
 }
