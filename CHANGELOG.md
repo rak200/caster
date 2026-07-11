@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-07-11
+
+Roadmap release: the `try*` family and the DI-ready instance API land, and the last non-uniform exception (`toDateTime`) is aligned.
+
+### Added
+- **`try*` family** — a null-returning twin for every conversion method: `tryToString`, `tryToInt`, `tryToFloat`, `tryToBool`, `tryToArray`, `tryToNumber`, `tryToDateTime`, `tryToEnum` (null for any failure, a non-enum `$enumClass` included), `tryToCollection`, `tryCast` (null for a marker-only `Castable`) and `tryToJson` (null on encoding failure)
+- **`CasterInterface`** — instance-level contract mirroring the full static API (converters, `try*` twins, `cast`, `toJson`) to enable dependency injection and mocking in consumer tests
+- **`DefaultCaster`** — canonical stateless `CasterInterface` implementation, delegating every method to the static `Caster`
+
+### Changed
+- **Breaking:** `Caster::toDateTime()` parses strings via utils' `Dt::parse` — a malformed string now throws `InvalidArgumentException` (previously PHP's `DateMalformedStringException` leaked through), so "every converter throws `InvalidArgumentException`" now holds without exceptions; int timestamps go through `Dt::fromEpoch`
+- `Caster::toString()` / `Caster::toJson()` docblocks now declare their full exception surface (`JsonException` on the JSON-encoding branch of `toString`; `InvalidArgumentException` for a marker-only `Castable` in `toJson`)
+
 ## [2.0.0] - 2026-07-11
 
 Correctness release: every defect found in a full-project review, fixed at the right layer (several fixes landed in `rak200/utils` 3.1.0/4.0.0 and are consumed here).
@@ -118,6 +131,7 @@ Correctness release: every defect found in a full-project review, fixed at the r
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[3.0.0]: https://github.com/rak200/caster/compare/2.0.0...3.0.0
 [2.0.0]: https://github.com/rak200/caster/compare/1.4.0...2.0.0
 [1.4.0]: https://github.com/rak200/caster/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/rak200/caster/compare/1.2.0...1.3.0

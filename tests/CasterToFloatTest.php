@@ -187,6 +187,16 @@ final class CasterToFloatTest extends TestCase
         };
         $this->assertEqualsWithDelta(-0.25, Caster::toFloat($obj), 0.0001);
     }
+
+    public function testTryToFloat(): void
+    {
+        $this->assertSame(2.5, Caster::tryToFloat('2.5'));
+    }
+
+    public function testTryToFloatNullOnNonNumericString(): void
+    {
+        $this->assertNull(Caster::tryToFloat('abc'));
+    }
 }
 
 enum CasterToFloatTestLevel: int

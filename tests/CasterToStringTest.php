@@ -261,6 +261,16 @@ final class CasterToStringTest extends TestCase
         $this->assertJson($result);
         $this->assertSame([1, 2, 3], json_decode($result, true));
     }
+
+    public function testTryToString(): void
+    {
+        $this->assertSame('42', Caster::tryToString(42));
+    }
+
+    public function testTryToStringNullOnNull(): void
+    {
+        $this->assertNull(Caster::tryToString(null));
+    }
 }
 
 /**

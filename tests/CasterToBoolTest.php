@@ -202,4 +202,15 @@ final class CasterToBoolTest extends TestCase
         };
         $this->assertTrue(Caster::toBool($obj));
     }
+
+    public function testTryToBool(): void
+    {
+        $this->assertTrue(Caster::tryToBool(1));
+        $this->assertFalse(Caster::tryToBool('0'));
+    }
+
+    public function testTryToBoolNullOnNull(): void
+    {
+        $this->assertNull(Caster::tryToBool(null));
+    }
 }

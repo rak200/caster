@@ -139,6 +139,26 @@ final class CasterToEnumTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toEnum(7, CasterToEnumTestStatus::class);
     }
+
+    public function testTryToEnum(): void
+    {
+        $this->assertSame(
+            CasterToEnumTestStatus::Active,
+            Caster::tryToEnum('active', CasterToEnumTestStatus::class),
+        );
+    }
+
+    public function testTryToEnumNullOnMiss(): void
+    {
+        $this->assertNull(Caster::tryToEnum('Clubs', CasterToEnumTestStatus::class));
+    }
+
+    /** Any failure returns null — including a class-string that is not an enum. */
+    public function testTryToEnumNullOnNonEnumClass(): void
+    {
+        // @phpstan-ignore-next-line argument.type
+        $this->assertNull(Caster::tryToEnum('hello', stdClass::class));
+    }
 }
 
 enum CasterToEnumTestStatus: string

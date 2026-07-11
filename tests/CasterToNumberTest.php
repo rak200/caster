@@ -194,6 +194,21 @@ final class CasterToNumberTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toNumber($obj);
     }
+
+    public function testTryToNumber(): void
+    {
+        $this->assertTrue(Caster::tryToNumber('1.5') == new Number('1.5'));
+    }
+
+    public function testTryToNumberNullOnNan(): void
+    {
+        $this->assertNull(Caster::tryToNumber(NAN));
+    }
+
+    public function testTryToNumberNullOnNull(): void
+    {
+        $this->assertNull(Caster::tryToNumber(null));
+    }
 }
 
 enum CasterToNumberTestLevel: int

@@ -14,6 +14,7 @@ use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToJson;
 use stdClass;
 
+use function fopen;
 use function json_decode;
 
 /**
@@ -147,5 +148,16 @@ final class CasterToJsonTest extends TestCase
     public function testTraversableIsMaterialised(): void
     {
         $this->assertSame('{"a":1}', Caster::toJson(new ArrayIterator(['a' => 1]), 0));
+    }
+
+    public function testTryToJson(): void
+    {
+        $this->assertSame('{"a":1}', Caster::tryToJson(['a' => 1], 0));
+    }
+
+    /** Resources cannot be encoded — tryToJson returns null instead of a JsonException. */
+    public function testTryToJsonNullOnResource(): void
+    {
+        $this->assertNull(Caster::tryToJson(fopen('php://memory', 'r')));
     }
 }

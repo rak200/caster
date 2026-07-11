@@ -16,11 +16,13 @@ The **cross-library rak200 PHP conventions** (baseline & tooling, dev dependenci
 
 ```
 caster/
-├── docs/             # per-class reference pages (caster.md, contracts.md + index)
+├── docs/                    # per-class reference pages (caster.md, caster-interface.md, contracts.md + index)
 ├── src/
-│   ├── Caster.php    # static utility class (final)
-│   └── Contracts/    # Castable marker + the 10 To* contracts (table below)
-└── tests/            # split per converter — see Testing
+│   ├── Caster.php           # static utility class (final)
+│   ├── CasterInterface.php  # instance-level mirror of the Caster API (DI/mocking)
+│   ├── DefaultCaster.php    # canonical stateless CasterInterface implementation
+│   └── Contracts/           # Castable marker + the 10 To* contracts (table below)
+└── tests/                   # split per converter — see Testing
 ```
 
 Production classes live under `Rak200\Caster\` (PSR-4 from `src/`); test classes live under `Rak200\Caster\Tests\` (PSR-4 from `tests/`, dev-only).
@@ -44,7 +46,7 @@ All contracts live under `Rak200\Caster\Contracts`. Every contract extends `Cast
 
 ## Caster class
 
-`Rak200\Caster\Caster` is `final` with the following static methods:
+`Rak200\Caster\Caster` is `final` with the following static methods. Every conversion method has a **`try*` twin** returning `null` instead of throwing (`tryToString`, …, `tryToCollection`, `tryCast`, `tryToJson`; `tryToEnum` returns null for any failure, a non-enum `$enumClass` included).
 
 Universal converters (throw `InvalidArgumentException` for unconvertible types):
 - `toString(mixed $value): string`
@@ -53,7 +55,7 @@ Universal converters (throw `InvalidArgumentException` for unconvertible types):
 - `toBool(mixed $value): bool`
 - `toArray(mixed $value): array`
 - `toNumber(mixed $value): \BcMath\Number`
-- `toDateTime(mixed $value): \DateTimeImmutable` (int values interpreted as Unix timestamps)
+- `toDateTime(mixed $value): \DateTimeImmutable` (int values interpreted as Unix timestamps via `Dt::fromEpoch`; strings parsed by `Dt::parse` — malformed strings throw `InvalidArgumentException`)
 - `toEnum(mixed $value, class-string<\UnitEnum> $enumClass = \UnitEnum::class): \UnitEnum` (backed enums match by backing value — the scalar is coerced to the backing type first, so `'2'` matches an int-backed case — then any enum by case name; enum instances pass through — the bare `\UnitEnum::class` default only accepts values that already are enum cases)
 - `toCollection(mixed $value): iterable`
 
@@ -61,12 +63,16 @@ Other:
 - `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\UnitEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`)
 - `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value via utils' `Json::encode` (always `JSON_THROW_ON_ERROR`); `ToJson` objects delegate to `toJson()` ignoring `$flags`; other `Castable`s go through `cast()` first; `Traversable`s (including `cast()` results) are materialised before encoding
 
+## CasterInterface & DefaultCaster
+
+`Rak200\Caster\CasterInterface` mirrors the full `Caster` API as instance methods (same signatures, defaults and exceptions — converters, `try*` twins, `cast`, `toJson`) so consumers can inject and mock the conversion surface. `Rak200\Caster\DefaultCaster` is the canonical implementation: `final`, stateless, each method a one-line delegation to the corresponding static.
+
 ## Testing
 
 General testing conventions are in the shared file. caster specifics:
 
 - PHPUnit is configured via `phpunit.xml` with a single `Unit` suite.
-- caster has a single production class, so instead of one test file per class the suite is split per converter: one `CasterTo<Type>Test.php` per universal converter, plus `CasterCastTest.php` (`cast()` dispatch) and `CasterBcMathTest.php` (BcMath edge cases).
+- The suite is split per converter: one `CasterTo<Type>Test.php` per universal converter (covering its `try*` twin too), plus `CasterCastTest.php` (`cast()`/`tryCast()` dispatch), `CasterBcMathTest.php` (BcMath edge cases) and `DefaultCasterTest.php` (interface delegation + mockability).
 
 ## Versioning & releases
 
@@ -78,8 +84,6 @@ Pending work only — items are **pruned** on delivery (shared release checklist
 
 ### 🟡 Medium priority
 
-- [ ] **`tryTo*` methods** — variants that return `null` instead of throwing (`tryToString(mixed): ?string`, `tryToInt(mixed): ?int`, …)
-- [ ] **`CasterInterface`** — interface for the `Caster` class to enable dependency injection and mocking in consumer tests
 - [ ] **`Caster::can(mixed $value, string $contract): bool`** — checks whether a value supports a given contract
 
 ### 🟢 Low priority
@@ -88,8 +92,6 @@ Pending work only — items are **pruned** on delivery (shared release checklist
 - [ ] **Custom converter registry** — `Caster::register('uuid', fn($v) => ...)` + `Caster::convert($value, 'uuid')`
 - [ ] **Fluent API** — `Caster::of($value)->toString()->trim()->upper()` (see section below)
 - [ ] **Mutation testing** — integrate Infection to validate test quality
-- [ ] **Publish on Packagist** — removes the VCS-repository requirement from consumers (requires publishing `rak200/utils` first, since caster depends on it at runtime)
-- [ ] **`CONTRIBUTING.md`** — contributor guide
 
 ### Fluent API — Details
 

@@ -66,4 +66,14 @@ final class CasterToCollectionTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toCollection(null);
     }
+
+    public function testTryToCollection(): void
+    {
+        $this->assertSame([1, 2], Caster::tryToCollection([1, 2]));
+    }
+
+    public function testTryToCollectionNullOnString(): void
+    {
+        $this->assertNull(Caster::tryToCollection('hello'));
+    }
 }

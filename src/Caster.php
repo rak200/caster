@@ -21,6 +21,7 @@ use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToJson;
 use Rak200\Caster\Contracts\ToNumber;
 use Rak200\Caster\Contracts\ToString;
+use Rak200\Utils\Dt;
 use Rak200\Utils\Enum;
 use Rak200\Utils\Iter;
 use Rak200\Utils\Json;
@@ -61,6 +62,7 @@ final class Caster
      * @return string the string representation of $value
      *
      * @throws InvalidArgumentException When $value cannot be stringified (e.g. null, resource).
+     * @throws JsonException            when the array/object/ToCollection branch cannot be JSON-encoded
      */
     public static function toString(mixed $value): string
     {
@@ -78,6 +80,18 @@ final class Caster
             Type::isArray($value) || Type::isObject($value) => self::toJson($value),
             default => throw new InvalidArgumentException('Cannot stringify ' . Type::of($value)),
         };
+    }
+
+    /**
+     * Like {@see self::toString()}, but returns null when $value cannot be stringified.
+     */
+    public static function tryToString(mixed $value): ?string
+    {
+        try {
+            return self::toString($value);
+        } catch (InvalidArgumentException|JsonException) {
+            return null;
+        }
     }
 
     /**
@@ -110,6 +124,18 @@ final class Caster
     }
 
     /**
+     * Like {@see self::toInt()}, but returns null when $value cannot be converted.
+     */
+    public static function tryToInt(mixed $value): ?int
+    {
+        try {
+            return self::toInt($value);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /**
      * Convert any value to a float.
      *
      * Strings (and Stringables) must be strictly numeric — no surrounding
@@ -138,6 +164,18 @@ final class Caster
             $value instanceof Stringable && Num::is($v = (string) $value) => (float) (string) $v,
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to float'),
         };
+    }
+
+    /**
+     * Like {@see self::toFloat()}, but returns null when $value cannot be converted.
+     */
+    public static function tryToFloat(mixed $value): ?float
+    {
+        try {
+            return self::toFloat($value);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**
@@ -173,6 +211,18 @@ final class Caster
     }
 
     /**
+     * Like {@see self::toBool()}, but returns null when $value cannot be converted.
+     */
+    public static function tryToBool(mixed $value): ?bool
+    {
+        try {
+            return self::toBool($value);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /**
      * Convert any value to an array.
      *
      * @param mixed $value the value to convert
@@ -190,6 +240,20 @@ final class Caster
             $value instanceof Traversable => [...$value],
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to array'),
         };
+    }
+
+    /**
+     * Like {@see self::toArray()}, but returns null when $value cannot be converted.
+     *
+     * @return null|array<mixed>
+     */
+    public static function tryToArray(mixed $value): ?array
+    {
+        try {
+            return self::toArray($value);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**
@@ -221,9 +285,23 @@ final class Caster
     }
 
     /**
+     * Like {@see self::toNumber()}, but returns null when $value cannot be converted.
+     */
+    public static function tryToNumber(mixed $value): ?Number
+    {
+        try {
+            return self::toNumber($value);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /**
      * Convert any value to a DateTimeImmutable.
      *
-     * Integer values are interpreted as Unix timestamps.
+     * Integer values are interpreted as Unix timestamps; strings accept any
+     * expression DateTimeImmutable's constructor does, parsed via utils'
+     * Dt::parse — malformed strings throw InvalidArgumentException.
      *
      * @param mixed $value the value to convert
      *
@@ -237,12 +315,24 @@ final class Caster
             $value instanceof DateTimeImmutable => $value,
             $value instanceof DateTime => DateTimeImmutable::createFromMutable($value),
             $value instanceof ToDateTime => $value->toDateTime(),
-            $value instanceof ToInt => new DateTimeImmutable('@' . $value->toInt()),
-            Type::isInt($value) => new DateTimeImmutable('@' . $value),
-            Type::isStr($value) => new DateTimeImmutable($value),
-            $value instanceof Stringable => new DateTimeImmutable((string) $value),
+            $value instanceof ToInt => Dt::fromEpoch($value->toInt()),
+            Type::isInt($value) => Dt::fromEpoch($value),
+            Type::isStr($value) => Dt::parse($value),
+            $value instanceof Stringable => Dt::parse((string) $value),
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to DateTimeImmutable'),
         };
+    }
+
+    /**
+     * Like {@see self::toDateTime()}, but returns null when $value cannot be converted.
+     */
+    public static function tryToDateTime(mixed $value): ?DateTimeImmutable
+    {
+        try {
+            return self::toDateTime($value);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**
@@ -308,6 +398,26 @@ final class Caster
     }
 
     /**
+     * Like {@see self::toEnum()}, but returns null when $value cannot be converted —
+     * including when $enumClass is not an enum.
+     *
+     * @template T of UnitEnum
+     *
+     * @param mixed           $value     the value to convert
+     * @param class-string<T> $enumClass the target enum class
+     *
+     * @return null|T
+     */
+    public static function tryToEnum(mixed $value, string $enumClass = UnitEnum::class): ?UnitEnum
+    {
+        try {
+            return self::toEnum($value, $enumClass);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /**
      * Convert any value to an iterable.
      *
      * @param mixed $value the value to convert
@@ -325,6 +435,20 @@ final class Caster
             $value instanceof ToArray => $value->toArray(),
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to iterable'),
         };
+    }
+
+    /**
+     * Like {@see self::toCollection()}, but returns null when $value cannot be converted.
+     *
+     * @return null|iterable<mixed>
+     */
+    public static function tryToCollection(mixed $value): ?iterable
+    {
+        try {
+            return self::toCollection($value);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**
@@ -366,6 +490,21 @@ final class Caster
     }
 
     /**
+     * Like {@see self::cast()}, but returns null when $value implements only the
+     * marker Castable interface.
+     *
+     * @return null|array<mixed>|bool|DateTimeImmutable|float|int|Number|string|Traversable<mixed>|UnitEnum
+     */
+    public static function tryCast(Castable $value): array|bool|DateTimeImmutable|float|int|Number|string|Traversable|UnitEnum|null
+    {
+        try {
+            return self::cast($value);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /**
      * Encode any value as a JSON string.
      *
      * - ToJson objects: delegates directly to toJson(), ignoring $flags.
@@ -384,7 +523,8 @@ final class Caster
      *
      * @return string a valid JSON string
      *
-     * @throws JsonException when $value cannot be encoded to JSON
+     * @throws JsonException            when $value cannot be encoded to JSON
+     * @throws InvalidArgumentException when $value is a Castable implementing only the marker interface
      */
     public static function toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string
     {
@@ -399,5 +539,17 @@ final class Caster
         }
 
         return Json::encode($value, $flags);
+    }
+
+    /**
+     * Like {@see self::toJson()}, but returns null when $value cannot be encoded.
+     */
+    public static function tryToJson(mixed $value, int $flags = JSON_PRETTY_PRINT): ?string
+    {
+        try {
+            return self::toJson($value, $flags);
+        } catch (InvalidArgumentException|JsonException) {
+            return null;
+        }
     }
 }

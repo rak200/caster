@@ -182,6 +182,24 @@ final class CasterCastTest extends TestCase
         Caster::cast($obj);
     }
 
+    /** tryCast() returns the same value as cast() for a real contract. */
+    public function testTryCast(): void
+    {
+        $obj = new class implements ToInt {
+            public function toInt(): int
+            {
+                return 99;
+            }
+        };
+        $this->assertSame(99, Caster::tryCast($obj));
+    }
+
+    /** tryCast() returns null for a marker-only Castable instead of throwing. */
+    public function testTryCastNullOnPlainCastable(): void
+    {
+        $this->assertNull(Caster::tryCast(new class implements Castable {}));
+    }
+
     /** ToJson takes priority over ToString when both are implemented. */
     public function testToJsonTakesPriorityOverToString(): void
     {

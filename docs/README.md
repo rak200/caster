@@ -4,10 +4,11 @@ Per-class API reference with runnable examples. For installation and a package o
 
 | Class                  | Doc                          | What it covers |
 | ---------------------- | ---------------------------- | -------------- |
-| `Caster`               | [caster.md](caster.md)       | Universal converters (`to*`), contract dispatch (`cast`), JSON encoding (`toJson`) |
+| `Caster`               | [caster.md](caster.md)       | Universal converters (`to*` + null-returning `try*` twins), contract dispatch (`cast`), JSON encoding (`toJson`) |
+| `CasterInterface` + `DefaultCaster` | [caster-interface.md](caster-interface.md) | Instance-level mirror of the `Caster` API for dependency injection and mocking |
 | `Castable` + contracts | [contracts.md](contracts.md) | The marker interface and the 10 typed casting contracts (`ToArray` … `ToString`) |
 
-The contracts are single-method interfaces that form one cohesive concept, so they share a single page instead of one page each.
+The contracts are single-method interfaces that form one cohesive concept, so they share a single page instead of one page each; `CasterInterface` and its canonical implementation pair up the same way.
 
 ## Conventions used in these docs
 

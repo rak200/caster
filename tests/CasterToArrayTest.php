@@ -84,4 +84,14 @@ final class CasterToArrayTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toArray(null);
     }
+
+    public function testTryToArray(): void
+    {
+        $this->assertSame([1, 2], Caster::tryToArray([1, 2]));
+    }
+
+    public function testTryToArrayNullOnString(): void
+    {
+        $this->assertNull(Caster::tryToArray('hello'));
+    }
 }

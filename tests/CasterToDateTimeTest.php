@@ -92,4 +92,33 @@ final class CasterToDateTimeTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toDateTime(null);
     }
+
+    /** Malformed strings throw InvalidArgumentException (via Dt::parse), not DateMalformedStringException. */
+    public function testMalformedStringThrowsInvalidArgument(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toDateTime('not a date');
+    }
+
+    public function testRelativeString(): void
+    {
+        $this->assertInstanceOf(DateTimeImmutable::class, Caster::toDateTime('tomorrow noon'));
+    }
+
+    public function testTryToDateTime(): void
+    {
+        $result = Caster::tryToDateTime('2026-05-27T12:00:00+00:00');
+        $this->assertNotNull($result);
+        $this->assertSame('2026-05-27T12:00:00+00:00', $result->format('c'));
+    }
+
+    public function testTryToDateTimeNullOnMalformedString(): void
+    {
+        $this->assertNull(Caster::tryToDateTime('not a date'));
+    }
+
+    public function testTryToDateTimeNullOnNull(): void
+    {
+        $this->assertNull(Caster::tryToDateTime(null));
+    }
 }

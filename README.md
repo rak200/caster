@@ -12,7 +12,7 @@
 
 Type casting contracts and utilities for PHP 8.4+.
 
-Objects declare which types they can be reduced to by implementing small single-method contracts (`ToInt`, `ToString`, `ToJson`, …); the static `Caster` class converts **any** value — primitives and contract implementors alike — to the requested type, throwing `InvalidArgumentException` instead of silently coercing garbage.
+Objects declare which types they can be reduced to by implementing small single-method contracts (`ToInt`, `ToString`, `ToJson`, …); the static `Caster` class converts **any** value — primitives and contract implementors alike — to the requested type, throwing `InvalidArgumentException` instead of silently coercing garbage. Every converter has a `try*` twin that returns `null` instead of throwing, and the whole API is mirrored instance-level by `CasterInterface` / `DefaultCaster` for dependency injection and mocking.
 
 ## Requirements
 

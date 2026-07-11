@@ -207,6 +207,21 @@ final class CasterToIntTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         Caster::toInt($obj);
     }
+
+    public function testTryToInt(): void
+    {
+        $this->assertSame(17, Caster::tryToInt('17'));
+    }
+
+    public function testTryToIntNullOnNonNumericString(): void
+    {
+        $this->assertNull(Caster::tryToInt('abc'));
+    }
+
+    public function testTryToIntNullOnNull(): void
+    {
+        $this->assertNull(Caster::tryToInt(null));
+    }
 }
 
 enum CasterToIntTestLevel: int
