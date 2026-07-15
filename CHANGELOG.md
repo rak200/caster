@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-07-15
+
+Tooling and test-quality release: no library code changed.
+
+### Added
+- **Mutation testing** — Infection (`infection/infection`) as a dev dependency, configured via `infection.json5.dist` and run with the new `composer infection` script. The suite sits at **98% MSI**; the seven remaining survivors are provably-equivalent mutants (PHPStan-only casts, a `final BcMath\Number` passthrough, and a re-cast `Stringable` — documented in `CLAUDE.md`), so the `minMsi=100` gate and its CI step are deferred to a follow-up, never met by lowering the threshold
+
+### Changed
+- Test suite strengthened while raising the mutation score from 82% to 98% (no behaviour change): exact exception-message assertions (`expectExceptionMessageIs`) on every converter's throw path, plus new coverage for `toString` typed-contract dispatch order (`ToInt`/`ToFloat`/`ToBool`/`ToCollection` arms), `toInt`/`toFloat` on a `ToBool` value, `toBool` on a falsy `Stringable`, `toEnum` backing-value-before-name priority and int-before-string extraction, and the `tryToString`/`tryToJson` non-`InvalidArgumentException` catch paths (`JsonException`, marker-only `Castable`)
+
 ## [3.0.0] - 2026-07-11
 
 Roadmap release: the `try*` family and the DI-ready instance API land, and the last non-uniform exception (`toDateTime`) is aligned.
@@ -131,6 +141,7 @@ Correctness release: every defect found in a full-project review, fixed at the r
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[3.0.1]: https://github.com/rak200/caster/compare/3.0.0...3.0.1
 [3.0.0]: https://github.com/rak200/caster/compare/2.0.0...3.0.0
 [2.0.0]: https://github.com/rak200/caster/compare/1.4.0...2.0.0
 [1.4.0]: https://github.com/rak200/caster/compare/1.3.0...1.4.0

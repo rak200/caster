@@ -7,6 +7,7 @@ namespace Rak200\Caster\Tests;
 use ArrayIterator;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
+use Rak200\Caster\Contracts\Castable;
 use Rak200\Caster\Contracts\ToArray;
 use Rak200\Caster\Contracts\ToBool;
 use Rak200\Caster\Contracts\ToCollection;
@@ -159,5 +160,11 @@ final class CasterToJsonTest extends TestCase
     public function testTryToJsonNullOnResource(): void
     {
         $this->assertNull(Caster::tryToJson(fopen('php://memory', 'r')));
+    }
+
+    /** A marker-only Castable makes cast() throw InvalidArgumentException — tryToJson returns null, not a leaked exception. */
+    public function testTryToJsonNullOnMarkerCastable(): void
+    {
+        $this->assertNull(Caster::tryToJson(new class implements Castable {}));
     }
 }

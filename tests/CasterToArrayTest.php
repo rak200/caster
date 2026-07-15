@@ -82,6 +82,7 @@ final class CasterToArrayTest extends TestCase
     public function testNullThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs('Cannot convert null to array');
         Caster::toArray(null);
     }
 

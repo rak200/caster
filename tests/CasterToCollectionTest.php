@@ -64,6 +64,7 @@ final class CasterToCollectionTest extends TestCase
     public function testNullThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs('Cannot convert null to iterable');
         Caster::toCollection(null);
     }
 

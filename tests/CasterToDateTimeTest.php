@@ -90,6 +90,7 @@ final class CasterToDateTimeTest extends TestCase
     public function testNullThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs('Cannot convert null to DateTimeImmutable');
         Caster::toDateTime(null);
     }
 

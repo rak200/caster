@@ -4,5 +4,7 @@
 .phpunit.cache/
 .phpstan.cache/
 .php-cs-fixer.cache
+infection.log
 .claude/
 /phpstan.neon
+/infection.json5

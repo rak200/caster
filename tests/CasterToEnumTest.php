@@ -100,6 +100,7 @@ final class CasterToEnumTest extends TestCase
     public function testNullThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs('Cannot convert null to ' . CasterToEnumTestStatus::class);
         Caster::toEnum(null, CasterToEnumTestStatus::class);
     }
 
@@ -140,6 +141,54 @@ final class CasterToEnumTest extends TestCase
         Caster::toEnum(7, CasterToEnumTestStatus::class);
     }
 
+    /** Backing-value match wins over case-name match: 'Bar' is Foo's backing value before it is Bar's name. */
+    public function testBackingValueMatchTakesPriorityOverCaseName(): void
+    {
+        $this->assertSame(
+            CasterToEnumTestClash::Foo,
+            Caster::toEnum('Bar', CasterToEnumTestClash::class),
+        );
+    }
+
+    /** For a value that is both ToInt and Stringable, the int is extracted first: toInt() 1 wins over "2". */
+    public function testIntExtractionTakesPriorityOverStringForBackedMatch(): void
+    {
+        $obj = new class implements Stringable, ToInt {
+            public function __toString(): string
+            {
+                return '2';
+            }
+
+            public function toInt(): int
+            {
+                return 1;
+            }
+        };
+        $this->assertSame(
+            CasterToEnumTestLevel::Low,
+            Caster::toEnum($obj, CasterToEnumTestLevel::class),
+        );
+    }
+
+    /** For a value that is both ToInt and Stringable, the extracted int (not the string) names it in the not-a-case error. */
+    public function testDualIntStringableReportsIntInError(): void
+    {
+        $obj = new class implements Stringable, ToInt {
+            public function __toString(): string
+            {
+                return 'xyz';
+            }
+
+            public function toInt(): int
+            {
+                return 7;
+            }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs("'7' is not a case of " . CasterToEnumTestLevel::class);
+        Caster::toEnum($obj, CasterToEnumTestLevel::class);
+    }
+
     public function testTryToEnum(): void
     {
         $this->assertSame(
@@ -176,4 +225,14 @@ enum CasterToEnumTestLevel: int
 enum CasterToEnumTestCode: string
 {
     case Ten = '10';
+}
+
+/**
+ * One case's backing value ('Bar') collides with another case's name (Bar),
+ * exercising the backing-value-before-name resolution order.
+ */
+enum CasterToEnumTestClash: string
+{
+    case Foo = 'Bar';
+    case Bar = 'Baz';
 }

@@ -110,6 +110,17 @@ final class CasterToIntTest extends TestCase
         $this->assertSame(1, Caster::toInt($obj));
     }
 
+    public function testToBoolFalse(): void
+    {
+        $obj = new class implements ToBool {
+            public function toBool(): bool
+            {
+                return false;
+            }
+        };
+        $this->assertSame(0, Caster::toInt($obj));
+    }
+
     public function testToDateTime(): void
     {
         $obj = new class implements ToDateTime {
@@ -160,6 +171,7 @@ final class CasterToIntTest extends TestCase
     public function testNullThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs('Cannot convert null to int');
         Caster::toInt(null);
     }
 

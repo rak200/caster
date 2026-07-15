@@ -106,6 +106,17 @@ final class CasterToFloatTest extends TestCase
         $this->assertSame(0.0, Caster::toFloat($obj));
     }
 
+    public function testToBoolTrue(): void
+    {
+        $obj = new class implements ToBool {
+            public function toBool(): bool
+            {
+                return true;
+            }
+        };
+        $this->assertSame(1.0, Caster::toFloat($obj));
+    }
+
     public function testToDateTimeIncludesMicroseconds(): void
     {
         $obj = new class implements ToDateTime {
@@ -167,6 +178,7 @@ final class CasterToFloatTest extends TestCase
     public function testNullThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs('Cannot convert null to float');
         Caster::toFloat(null);
     }
 

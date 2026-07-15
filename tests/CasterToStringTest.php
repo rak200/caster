@@ -16,6 +16,7 @@ use Rak200\Caster\Contracts\ToDateTime;
 use Rak200\Caster\Contracts\ToEnum;
 use Rak200\Caster\Contracts\ToFloat;
 use Rak200\Caster\Contracts\ToInt;
+use Rak200\Caster\Contracts\ToJson;
 use Rak200\Caster\Contracts\ToNumber;
 use stdClass;
 use Stringable;
@@ -162,6 +163,7 @@ final class CasterToStringTest extends TestCase
     public function testNullThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs('Cannot stringify null');
         Caster::toString(null);
     }
 
@@ -262,6 +264,78 @@ final class CasterToStringTest extends TestCase
         $this->assertSame([1, 2, 3], json_decode($result, true));
     }
 
+    /** Among typed contracts, ToInt is resolved before ToFloat. */
+    public function testToIntResolvedBeforeToFloat(): void
+    {
+        $obj = new class implements ToFloat, ToInt {
+            public function toInt(): int
+            {
+                return 7;
+            }
+
+            public function toFloat(): float
+            {
+                return 7.5;
+            }
+        };
+        $this->assertSame('7', Caster::toString($obj));
+    }
+
+    /** Among typed contracts, ToFloat is resolved before ToNumber. */
+    public function testToFloatResolvedBeforeToNumber(): void
+    {
+        $obj = new class implements ToFloat, ToNumber {
+            public function toFloat(): float
+            {
+                return 1.5;
+            }
+
+            public function toNumber(): Number
+            {
+                return new Number('9');
+            }
+        };
+        $this->assertSame('1.5', Caster::toString($obj));
+    }
+
+    /**
+     * A ToCollection value is stringified as its collection, even when it also
+     * implements ToJson: the dedicated ToCollection arm precedes the generic
+     * object→toJson() fallback, which would otherwise delegate to toJson().
+     */
+    public function testToCollectionResolvedBeforeToJsonFallback(): void
+    {
+        $obj = new class implements ToCollection, ToJson {
+            public function toCollection(): iterable
+            {
+                return [1, 2, 3];
+            }
+
+            public function toJson(): string
+            {
+                return '{"custom":true}';
+            }
+        };
+        $this->assertSame([1, 2, 3], json_decode(Caster::toString($obj), true));
+    }
+
+    /** ToBool is resolved before ToDateTime. */
+    public function testToBoolResolvedBeforeToDateTime(): void
+    {
+        $obj = new class implements ToBool, ToDateTime {
+            public function toBool(): bool
+            {
+                return true;
+            }
+
+            public function toDateTime(): DateTimeImmutable
+            {
+                return new DateTimeImmutable('2026-05-27T12:00:00+00:00');
+            }
+        };
+        $this->assertSame('true', Caster::toString($obj));
+    }
+
     public function testTryToString(): void
     {
         $this->assertSame('42', Caster::tryToString(42));
@@ -270,6 +344,12 @@ final class CasterToStringTest extends TestCase
     public function testTryToStringNullOnNull(): void
     {
         $this->assertNull(Caster::tryToString(null));
+    }
+
+    /** A value that stringifies through the JSON branch but cannot be encoded returns null, not a leaked JsonException. */
+    public function testTryToStringNullOnUnencodableJson(): void
+    {
+        $this->assertNull(Caster::tryToString([NAN]));
     }
 }
 

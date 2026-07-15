@@ -74,6 +74,18 @@ final class CasterToBoolTest extends TestCase
         $this->assertTrue(Caster::toBool($obj));
     }
 
+    /** A Stringable is judged by its string content: one rendering "0" is false, not truthy by mere objecthood. */
+    public function testStringableFalsy(): void
+    {
+        $obj = new class implements Stringable {
+            public function __toString(): string
+            {
+                return '0';
+            }
+        };
+        $this->assertFalse(Caster::toBool($obj));
+    }
+
     public function testToBool(): void
     {
         $obj = new class implements ToBool {
@@ -164,6 +176,7 @@ final class CasterToBoolTest extends TestCase
     public function testNullThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageIs('Cannot convert null to bool');
         Caster::toBool(null);
     }
 

@@ -174,12 +174,12 @@ final class CasterCastTest extends TestCase
         $this->assertSame([1, 2, 3], Caster::cast($obj));
     }
 
-    /** Objects implementing only the marker Castable interface throw InvalidArgumentException. */
+    /** Objects implementing only the marker Castable interface throw InvalidArgumentException naming the type. */
     public function testPlainCastableThrows(): void
     {
-        $obj = new class implements Castable {};
         $this->expectException(InvalidArgumentException::class);
-        Caster::cast($obj);
+        $this->expectExceptionMessageIs('Cannot cast ' . CasterCastTestMarker::class);
+        Caster::cast(new CasterCastTestMarker());
     }
 
     /** tryCast() returns the same value as cast() for a real contract. */
@@ -260,3 +260,9 @@ enum CasterCastTestStatus: string
     case Active = 'active';
     case Inactive = 'inactive';
 }
+
+/**
+ * Marker-only Castable with a stable class name, so the "Cannot cast" message
+ * is assertable (an anonymous class renders an unstable Type::of string).
+ */
+final class CasterCastTestMarker implements Castable {}
