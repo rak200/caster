@@ -73,7 +73,7 @@ General testing conventions are in the shared file. caster specifics:
 
 - PHPUnit is configured via `phpunit.xml` with a single `Unit` suite.
 - The suite is split per converter: one `CasterTo<Type>Test.php` per universal converter (covering its `try*` twin too), plus `CasterCastTest.php` (`cast()`/`tryCast()` dispatch), `CasterBcMathTest.php` (BcMath edge cases) and `DefaultCasterTest.php` (interface delegation + mockability).
-- **Mutation testing** — Infection (`infection/infection`, config `infection.json5.dist`) is wired up: `composer infection` runs it (locally via Xdebug through the script's `XDEBUG_MODE=coverage`; CI would use pcov). The MSI gate (`minMsi=100`) is **not yet enabled** — see the Roadmap item while the surviving mutants are triaged. Surviving mutants are killed by strengthening tests, or justified as equivalent; the threshold is never lowered to accommodate them.
+- **Mutation testing** — Infection (`infection/infection`, config `infection.json5.dist`) runs via `composer infection` (locally through Xdebug via the script's `XDEBUG_MODE=coverage`; CI uses pcov). The **MSI gate is closed at 100** (`minMsi=100` / `minCoveredMsi=100`), enforced by a floor-only CI step. Surviving mutants are killed by strengthening tests, or — when provably equivalent — suppressed in-code with `@infection-ignore-all` anchored on the smallest node that isolates just the equivalent construct (the six PHPStan-only casts / re-cast `Stringable`), or removed as dead code when even that can't reach the mutation (the redundant `toNumber` `Number => $value` fast-path arm — `MatchArmRemoval` targets the parent `Match_` node, not the arm, and the fall-through `Num::parseNumber` returns the same instance); the threshold is never lowered.
 
 ## Versioning & releases
 
@@ -88,12 +88,6 @@ Pending work only — items are **pruned** on delivery (shared release checklist
 - [ ] **`Caster::all(array $values, string $method): array`** — applies a conversion method in batch
 - [ ] **Custom converter registry** — `Caster::register('uuid', fn($v) => ...)` + `Caster::convert($value, 'uuid')`
 - [ ] **Fluent API** — `Caster::of($value)->toString()->trim()->upper()` (see section below)
-- [ ] **Mutation testing — decide the ignore mechanism, then close the MSI 100 gate.** Infection is integrated and the suite is at **98% MSI** (see Testing). Every killable mutant has been killed by a strengthening test (including the multi-contract cases — e.g. `toString` on a `ToCollection` + `ToJson` object encodes the collection, and `toEnum` on a `ToInt` + `Stringable` value that matches nothing names the *int* in the error). The **7 remaining survivors are all provably equivalent** — no input distinguishes them from the original, so they can only be *ignored*, never killed:
-  - *PHPStan-only casts, runtime no-ops* (the outer cast only satisfies the declared return type; the arm's guard already guarantees the type): `(int) Enum::scalar($e)` (`isBackedInt` ⇒ int), `(int) (string) $v` / `(float) (string) $v` (`$v` is already the string; inner cast is the match-condition-assignment workaround), `(float) $value->toInt()` (return coerces int→float), `(int) $dt->format('u')` (numeric string coerces the same under `/ 1e6`).
-  - *`toNumber` arm `Number => $value`* — `BcMath\Number` is `final`, so it cannot co-implement another contract; the fall-through `Num::parseNumber(Number)` returns the same instance (`assertSame` passes either way).
-  - *`toEnum` `$stringValue = (string) $value`* — every downstream use re-casts to string, so holding the object vs its string is indistinguishable for any deterministic `Stringable`.
-
-  Pending: pick the ignore mechanism (leaning **`ignoreSourceCodeByRegex` per mutator in `infection.json5.dist`** — surgical, keeps `Caster.php` clean, and does not mask the condition mutators on those same lines the way an inline `@infection-ignore-all` node annotation would), then set `minMsi=100`/`minCoveredMsi=100`, add a floor-only CI step (`composer infection -- --logger-github`, `if: matrix.php == '8.4'`), an MSI badge in the README, and promote Infection into the shared conventions (with a utils adoption item).
 
 ### Fluent API — Details
 

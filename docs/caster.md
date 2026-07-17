@@ -165,7 +165,7 @@ Caster::toNumber(mixed $value): BcMath\Number
 Caster::tryToNumber(mixed $value): ?BcMath\Number
 ```
 
-Arbitrary-precision conversion. Resolution order: `BcMath\Number` as-is → `ToNumber` → `ToInt` / `ToFloat` / `ToBool` wrapped into a `Number` → `ToEnum` whose scalar is numeric → `bool` as `1` / `0` → any strict numeric value (`int`, `float`, numeric string — no surrounding whitespace) via `Num::parseNumber` → `Stringable` whose string form is numeric.
+Arbitrary-precision conversion. Resolution order: `ToNumber` → `ToInt` / `ToFloat` / `ToBool` wrapped into a `Number` → `ToEnum` whose scalar is numeric → `bool` as `1` / `0` → any strict numeric value (`int`, `float`, an existing `BcMath\Number` — returned as the same instance — or a numeric string with no surrounding whitespace) via `Num::parseNumber` → `Stringable` whose string form is numeric.
 
 Floats are expanded to their exact decimal form, so values whose string form is scientific notation (`1.0E-7`) convert cleanly. Non-finite floats (`NAN`, `INF`) throw `InvalidArgumentException` — they have no arbitrary-precision representation.
 

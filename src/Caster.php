@@ -115,10 +115,10 @@ final class Caster
             $value instanceof ToNumber => (int) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1 : 0,
             $value instanceof ToDateTime => $value->toDateTime()->getTimestamp(),
-            $value instanceof ToEnum && Enum::isBackedInt($e = $value->toEnum()) => (int) Enum::scalar($e),
+            $value instanceof ToEnum && Enum::isBackedInt($e = $value->toEnum()) => /* @infection-ignore-all: guard already guarantees int */ (int) Enum::scalar($e),
             Type::isFloat($value) || Type::isBool($value) => (int) $value,
             Type::isStr($value) && Num::is($value) => (int) $value,
-            $value instanceof Stringable && Num::is($v = (string) $value) => (int) (string) $v,
+            $value instanceof Stringable && Num::is($v = (string) $value) => (int) /* @infection-ignore-all: $v is already a string */ (string) $v,
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to int'),
         };
     }
@@ -152,16 +152,17 @@ final class Caster
         return match (true) {
             Type::isFloat($value) => $value,
             $value instanceof ToFloat => $value->toFloat(),
+            // @infection-ignore-all: int widens to the same float
             $value instanceof ToInt => (float) $value->toInt(),
             $value instanceof ToNumber => (float) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1.0 : 0.0,
             // getTimestamp() + positive microseconds: format('U.u') would glue
             // the negative-seconds part to the fraction and skew pre-epoch instants.
-            $value instanceof ToDateTime => ($dt = $value->toDateTime())->getTimestamp() + (int) $dt->format('u') / 1e6,
+            $value instanceof ToDateTime => ($dt = $value->toDateTime())->getTimestamp() + /* @infection-ignore-all: numeric string divides identically */ (int) $dt->format('u') / 1e6,
             $value instanceof ToEnum && Num::is($s = Enum::scalar($value->toEnum())) => Num::parseFloat((string) $s),
             Type::isInt($value) || Type::isBool($value) => (float) $value,
             Type::isStr($value) && Num::is($value) => (float) $value,
-            $value instanceof Stringable && Num::is($v = (string) $value) => (float) (string) $v,
+            $value instanceof Stringable && Num::is($v = (string) $value) => (float) /* @infection-ignore-all: $v is already a string */ (string) $v,
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to float'),
         };
     }
@@ -271,7 +272,6 @@ final class Caster
     public static function toNumber(mixed $value): Number
     {
         return match (true) {
-            $value instanceof Number => $value,
             $value instanceof ToNumber => $value->toNumber(),
             $value instanceof ToInt => new Number($value->toInt()),
             $value instanceof ToFloat => Num::parseNumber($value->toFloat()),
@@ -373,6 +373,7 @@ final class Caster
             default => null,
         };
         $stringValue = match (true) {
+            // @infection-ignore-all: re-cast to string downstream anyway
             $value instanceof Stringable => (string) $value,
             Type::isStr($value) => $value,
             default => null,

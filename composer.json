@@ -1,7 +1,7 @@
 {
     "name": "rak200/caster",
     "description": "Type casting contracts and utilities for PHP 8.4+",
-    "version": "3.0.1",
+    "version": "3.0.2",
     "type": "library",
     "license": "MIT",
     "keywords": ["casting", "type-casting", "contracts", "interfaces", "php84"],

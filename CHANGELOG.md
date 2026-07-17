@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2026-07-17
+
+Test-quality release: the Infection mutation-testing gate is enforced at **100% MSI**. No behaviour change.
+
+### Added
+- **Infection MSI gate** — `minMsi: 100` / `minCoveredMsi: 100` in `infection.json5.dist`, enforced in CI by a floor-only `composer infection -- --logger-github` step (PHP 8.4 job), and advertised by a new MSI badge in the README
+
+### Changed
+- Reached 100% MSI (from 98%): six provably-equivalent survivors — the PHPStan-only casts in `toString`/`toInt`/`toFloat` and the re-cast `Stringable` in `toEnum` — are now suppressed in-code with narrowly-anchored `@infection-ignore-all` comments, placed on the smallest node so the same-line condition mutators (`&&`, `instanceof`, arithmetic) stay live
+- `Caster::toNumber()` drops the redundant `$value instanceof Number => $value` fast-path arm: a `BcMath\Number` already falls through to `Num::is($value) => Num::parseNumber($value)`, which returns the **same instance** (identity preserved — `assertSame` stays green), so removing it is behaviour-neutral and kills the seventh survivor, which `@infection-ignore-all` cannot suppress because Infection's `MatchArmRemoval` targets the parent `Match_` node rather than the annotated arm
+- CI: `codecov/codecov-action` bumped v5 → v7, dropping the deprecated Node 20 `github-script` transitive dependency
+
 ## [3.0.1] - 2026-07-15
 
 Tooling and test-quality release: no library code changed.
@@ -141,6 +153,7 @@ Correctness release: every defect found in a full-project review, fixed at the r
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[3.0.2]: https://github.com/rak200/caster/compare/3.0.1...3.0.2
 [3.0.1]: https://github.com/rak200/caster/compare/3.0.0...3.0.1
 [3.0.0]: https://github.com/rak200/caster/compare/2.0.0...3.0.0
 [2.0.0]: https://github.com/rak200/caster/compare/1.4.0...2.0.0
