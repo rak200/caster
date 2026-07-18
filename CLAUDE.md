@@ -85,7 +85,6 @@ Pending work only — items are **pruned** on delivery (shared release checklist
 
 ### 🟢 Low priority
 
-- [ ] **Custom converter registry** — `Caster::register('uuid', fn($v) => ...)` + `Caster::convert($value, 'uuid')`
 - [ ] **Fluent API** — `Caster::of($value)->toString()->trim()->upper()` (see section below)
 
 ### Fluent API — Details
