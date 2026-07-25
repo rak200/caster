@@ -31,7 +31,7 @@ Caster::toString(mixed $value): string
 Caster::tryToString(mixed $value): ?string
 ```
 
-Resolution order: `string` as-is → `int` / `float` / `Stringable` via `(string)` → `ToInt` / `ToFloat` / `ToNumber` contract value as string → `bool` / `ToBool` as `'true'` / `'false'` → `ToDateTime` formatted as ISO 8601 (`format('c')`) → `ToEnum` as its backing value (backed) or case name (pure) → `ToCollection` materialised and JSON-encoded → any other `array` / `object` via [`toJson`](#tojson).
+Resolution order: `string` as-is → `int` / `float` / `Stringable` via `(string)` → `ToInt` / `ToFloat` / `ToNumber` contract value as string → `bool` / `ToBool` as `'true'` / `'false'` → `ToDateTime` formatted as ISO 8601 (utils' `Dt::iso`) → `ToEnum` as its backing value (backed) or case name (pure) → `ToCollection` materialised and JSON-encoded → any other `array` / `object` via [`toJson`](#tojson).
 
 ```php
 Caster::toString('abc');          // 'abc'
@@ -93,7 +93,7 @@ Caster::toFloat(mixed $value): float
 Caster::tryToFloat(mixed $value): ?float
 ```
 
-Resolution order: `float` as-is → `ToFloat` → `ToInt` via `(float)` → `ToNumber` via its string form → `ToBool` as `1.0` / `0.0` → `ToDateTime` as epoch seconds **with microseconds** (`getTimestamp()` plus the microsecond fraction — correct for pre-epoch instants too) → `ToEnum` whose scalar is numeric, parsed by `Num::parseFloat` → `int` / `bool` via `(float)` → strictly numeric `string` / `Stringable` via `(float)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0.0`.
+Resolution order: `float` as-is → `ToFloat` → `ToInt` via `(float)` → `ToNumber` via its string form → `ToBool` as `1.0` / `0.0` → `ToDateTime` as epoch seconds **with microseconds** (`getTimestamp()` plus the microsecond fraction — correct for pre-epoch instants too) → `ToEnum` whose scalar is numeric, parsed by `Num::parseFloatOrNull` → `int` / `bool` via `(float)` → strictly numeric `string` / `Stringable` via `(float)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0.0`.
 
 ```php
 Caster::toFloat(1.5);      // 1.5

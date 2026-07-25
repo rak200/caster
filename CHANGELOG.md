@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.3] - 2026-07-25
+
+Maintenance release: the converters are rebuilt on the helpers added by `rak200/utils` 4.2/4.3. No behaviour change — every conversion, exception and edge case is identical.
+
+### Changed
+- **`rak200/utils` requirement raised `^4.0` → `^4.3`** — the converters now call `Enum::intOrNull` (4.3.0) and `Enum::isInt` (4.2.0), so `^4.0` would resolve to a version without them. Consumers must accept the newer utils; caster's own public API is untouched
+- `Caster::toInt()` reads an int-backed `ToEnum` through `Enum::intOrNull` instead of pairing `Enum::isBackedInt` with `Enum::scalar` — a single value-extracting read replaces predicate-then-extract, and the `(int)` cast (with its `@infection-ignore-all`) disappears
+- `Caster::toFloat()` resolves its `ToEnum`, `string` and `Stringable` arms with `Num::parseFloatOrNull` instead of gating on `Num::is` and re-parsing the same value — one pass instead of two (the shared "no redundant second pass" rule), and the `(float) (string)` double cast (with its `@infection-ignore-all`) disappears
+- `Caster::toBool()` compares `Number` values — direct instances and `ToNumber` results — to zero via `Num::sign(…) !== 0` rather than a loose `!= new Number('0')`
+- `Caster::toEnum()` detects the target's backing type with `Enum::isInt($cases[0])` (utils 4.2.0), whose `BackedEnum` parameter narrows `$case->value` exactly in both branches, replacing `Type::isInt($cases[0]->value)`
+- `Caster::toString()` and `Caster::toFloat()` format date-times through utils' `Dt::iso` / `Dt::format` instead of calling `DateTimeInterface::format()` directly (prefer-lib-over-native); `Dt::iso` emits `DateTimeInterface::ATOM`, byte-for-byte the previous `format('c')`
+- In-code `@infection-ignore-all` suppressions in `Caster` drop from six to four; the 100% MSI gate stays closed and the changed lines mutate clean (83 mutants, all killed)
+
+### Removed
+- Roadmap emptied in `CLAUDE.md`: the **Fluent API** idea moved to the devr proposal process as RFC 0015 (`rak200/fluent-utils`, which would consume caster's public API as a regular dependency); **`Caster::all()`** was dropped as already covered by `array_map` plus first-class callables; the **custom converter registry** was dropped for its stringly-typed dispatch, global mutable state and mixed return types. caster's surface is unaffected by all three
+
 ## [3.0.2] - 2026-07-17
 
 Test-quality release: the Infection mutation-testing gate is enforced at **100% MSI**. No behaviour change.
@@ -153,6 +169,7 @@ Correctness release: every defect found in a full-project review, fixed at the r
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[3.0.3]: https://github.com/rak200/caster/compare/3.0.2...3.0.3
 [3.0.2]: https://github.com/rak200/caster/compare/3.0.1...3.0.2
 [3.0.1]: https://github.com/rak200/caster/compare/3.0.0...3.0.1
 [3.0.0]: https://github.com/rak200/caster/compare/2.0.0...3.0.0

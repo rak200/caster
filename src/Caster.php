@@ -74,7 +74,7 @@ final class Caster
             $value instanceof ToNumber => (string) $value->toNumber(),
             Type::isBool($value) => $value ? 'true' : 'false',
             $value instanceof ToBool => $value->toBool() ? 'true' : 'false',
-            $value instanceof ToDateTime => $value->toDateTime()->format('c'),
+            $value instanceof ToDateTime => Dt::iso($value->toDateTime()),
             $value instanceof ToEnum => (string) Enum::scalar($value->toEnum()),
             $value instanceof ToCollection => self::toJson($value->toCollection()),
             Type::isArray($value) || Type::isObject($value) => self::toJson($value),
@@ -115,7 +115,7 @@ final class Caster
             $value instanceof ToNumber => (int) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1 : 0,
             $value instanceof ToDateTime => $value->toDateTime()->getTimestamp(),
-            $value instanceof ToEnum && Enum::isBackedInt($e = $value->toEnum()) => /* @infection-ignore-all: guard already guarantees int */ (int) Enum::scalar($e),
+            $value instanceof ToEnum && Type::isInt($i = Enum::intOrNull($value->toEnum())) => $i,
             Type::isFloat($value) || Type::isBool($value) => (int) $value,
             Type::isStr($value) && Num::is($value) => (int) $value,
             $value instanceof Stringable && Num::is($v = (string) $value) => (int) /* @infection-ignore-all: $v is already a string */ (string) $v,
@@ -158,11 +158,11 @@ final class Caster
             $value instanceof ToBool => $value->toBool() ? 1.0 : 0.0,
             // getTimestamp() + positive microseconds: format('U.u') would glue
             // the negative-seconds part to the fraction and skew pre-epoch instants.
-            $value instanceof ToDateTime => ($dt = $value->toDateTime())->getTimestamp() + /* @infection-ignore-all: numeric string divides identically */ (int) $dt->format('u') / 1e6,
-            $value instanceof ToEnum && Num::is($s = Enum::scalar($value->toEnum())) => Num::parseFloat((string) $s),
+            $value instanceof ToDateTime => ($dt = $value->toDateTime())->getTimestamp() + /* @infection-ignore-all: numeric string divides identically */ (int) Dt::format($dt, 'u') / 1e6,
+            $value instanceof ToEnum && Type::isFloat($f = Num::parseFloatOrNull((string) Enum::scalar($value->toEnum()))) => $f,
             Type::isInt($value) || Type::isBool($value) => (float) $value,
-            Type::isStr($value) && Num::is($value) => (float) $value,
-            $value instanceof Stringable && Num::is($v = (string) $value) => (float) /* @infection-ignore-all: $v is already a string */ (string) $v,
+            Type::isStr($value) && Type::isFloat($f = Num::parseFloatOrNull($value)) => $f,
+            $value instanceof Stringable && Type::isFloat($f = Num::parseFloatOrNull((string) $value)) => $f,
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to float'),
         };
     }
@@ -196,11 +196,11 @@ final class Caster
         return match (true) {
             Type::isBool($value) => $value,
             // numeric comparison, not string truthiness: (bool) '0.00' is true
-            $value instanceof Number => $value != new Number('0'),
+            $value instanceof Number => Num::sign($value) !== 0,
             $value instanceof ToBool => $value->toBool(),
             $value instanceof ToInt => (bool) $value->toInt(),
             $value instanceof ToFloat => (bool) $value->toFloat(),
-            $value instanceof ToNumber => $value->toNumber() != new Number('0'),
+            $value instanceof ToNumber => Num::sign($value->toNumber()) !== 0,
             Type::isInt($value) || Type::isFloat($value) => (bool) $value,
             Type::isStr($value) => (bool) $value,
             $value instanceof Stringable => (bool) (string) $value,
@@ -387,7 +387,7 @@ final class Caster
         if (Type::isSubclass($enumClass, BackedEnum::class) && ($cases = $enumClass::cases()) !== []) {
             // tryFrom() is strictly typed: coerce the scalar to the backing type
             // first, so '2' matches an int-backed case and 2 a string-backed '2'.
-            $backingValue = Type::isInt($cases[0]->value)
+            $backingValue = Enum::isInt($cases[0])
                 ? ($intValue ?? Num::parseIntOrNull((string) $stringValue))
                 : (string) $scalar;
             $case = $backingValue === null ? null : $enumClass::tryFrom($backingValue);

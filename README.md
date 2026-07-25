@@ -19,7 +19,7 @@ Objects declare which types they can be reduced to by implementing small single-
 
 - PHP 8.4+
 - Extension: `bcmath` (for `BcMath\Number` support in `toNumber`). Bundled with PHP and enabled by default on most distributions.
-- Runtime dependency: [`rak200/utils`](https://github.com/rak200/utils) (installed automatically).
+- Runtime dependency: [`rak200/utils`](https://github.com/rak200/utils) `^4.3` (installed automatically).
 
 ## Installation
 
