@@ -264,6 +264,22 @@ final class CasterToStringTest extends TestCase
         $this->assertSame([1, 2, 3], json_decode($result, true));
     }
 
+    /** Keys survive materialisation, so a non-sequential ToCollection stringifies as a JSON object. */
+    public function testToCollectionObjectPreservesIntKeys(): void
+    {
+        $obj = new class implements ToCollection {
+            public function toCollection(): iterable
+            {
+                yield 5 => 'a';
+
+                yield 9 => 'b';
+            }
+        };
+        $result = Caster::toString($obj);
+        $this->assertJson($result);
+        $this->assertSame([5 => 'a', 9 => 'b'], json_decode($result, true));
+    }
+
     /** Among typed contracts, ToInt is resolved before ToFloat. */
     public function testToIntResolvedBeforeToFloat(): void
     {

@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Rak200\Caster;
 
-use BackedEnum;
 use BcMath\Number;
-use DateTime;
 use DateTimeImmutable;
+use DateTimeInterface;
 use InvalidArgumentException;
 use JsonException;
 use Rak200\Caster\Contracts\Castable;
@@ -30,6 +29,11 @@ use Rak200\Utils\Type;
 use Stringable;
 use Traversable;
 use UnitEnum;
+
+// Materialisation keeps keys, and only iterator_to_array() types that for an
+// *arbitrary* Traversable: utils' Iter::toArray() binds `TKey of array-key`,
+// which cannot resolve against the unconstrained iterables Caster accepts.
+use function iterator_to_array;
 
 /**
  * Static utility class for converting values between PHP types.
@@ -114,7 +118,7 @@ final class Caster
             $value instanceof ToFloat => (int) $value->toFloat(),
             $value instanceof ToNumber => (int) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1 : 0,
-            $value instanceof ToDateTime => $value->toDateTime()->getTimestamp(),
+            $value instanceof ToDateTime => Dt::toEpoch($value->toDateTime()),
             $value instanceof ToEnum && Type::isInt($i = Enum::intOrNull($value->toEnum())) => $i,
             Type::isFloat($value) || Type::isBool($value) => (int) $value,
             Type::isStr($value) && Num::is($value) => (int) $value,
@@ -156,9 +160,7 @@ final class Caster
             $value instanceof ToInt => (float) $value->toInt(),
             $value instanceof ToNumber => (float) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1.0 : 0.0,
-            // getTimestamp() + positive microseconds: format('U.u') would glue
-            // the negative-seconds part to the fraction and skew pre-epoch instants.
-            $value instanceof ToDateTime => ($dt = $value->toDateTime())->getTimestamp() + /* @infection-ignore-all: numeric string divides identically */ (int) Dt::format($dt, 'u') / 1e6,
+            $value instanceof ToDateTime => Dt::toEpochFloat($value->toDateTime()),
             $value instanceof ToEnum && Type::isFloat($f = Num::parseFloatOrNull((string) Enum::scalar($value->toEnum()))) => $f,
             Type::isInt($value) || Type::isBool($value) => (float) $value,
             Type::isStr($value) && Type::isFloat($f = Num::parseFloatOrNull($value)) => $f,
@@ -237,8 +239,8 @@ final class Caster
         return match (true) {
             Type::isArray($value) => $value,
             $value instanceof ToArray => $value->toArray(),
-            $value instanceof ToCollection => [...$value->toCollection()],
-            $value instanceof Traversable => [...$value],
+            $value instanceof ToCollection => iterator_to_array($value->toCollection(), true),
+            $value instanceof Traversable => iterator_to_array($value, true),
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to array'),
         };
     }
@@ -312,8 +314,7 @@ final class Caster
     public static function toDateTime(mixed $value): DateTimeImmutable
     {
         return match (true) {
-            $value instanceof DateTimeImmutable => $value,
-            $value instanceof DateTime => DateTimeImmutable::createFromMutable($value),
+            $value instanceof DateTimeInterface => Dt::fromInterface($value),
             $value instanceof ToDateTime => $value->toDateTime(),
             $value instanceof ToInt => Dt::fromEpoch($value->toInt()),
             Type::isInt($value) => Dt::fromEpoch($value),
@@ -383,17 +384,9 @@ final class Caster
             throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to ' . $enumClass);
         }
 
-        $case = null;
-        if (Type::isSubclass($enumClass, BackedEnum::class) && ($cases = $enumClass::cases()) !== []) {
-            // tryFrom() is strictly typed: coerce the scalar to the backing type
-            // first, so '2' matches an int-backed case and 2 a string-backed '2'.
-            $backingValue = Enum::isInt($cases[0])
-                ? ($intValue ?? Num::parseIntOrNull((string) $stringValue))
-                : (string) $scalar;
-            $case = $backingValue === null ? null : $enumClass::tryFrom($backingValue);
-        }
-
-        return $case
+        // Backed value first (tryFromValue coerces the scalar to the backing
+        // type, so '2' matches an int-backed case), then the case name.
+        return Enum::tryFromValue($enumClass, $scalar)
             ?? Enum::tryFromName($enumClass, (string) $stringValue)
             ?? throw new InvalidArgumentException("'{$scalar}' is not a case of {$enumClass}");
     }
@@ -536,7 +529,7 @@ final class Caster
             $value = self::cast($value);
         }
         if ($value instanceof Traversable) {
-            $value = [...$value];
+            $value = iterator_to_array($value, true);
         }
 
         return Json::encode($value, $flags);

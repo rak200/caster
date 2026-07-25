@@ -151,6 +151,31 @@ final class CasterToJsonTest extends TestCase
         $this->assertSame('{"a":1}', Caster::toJson(new ArrayIterator(['a' => 1]), 0));
     }
 
+    /** Int keys survive materialisation, so a non-sequential iterable encodes as a JSON object. */
+    public function testTraversableWithNonSequentialIntKeysEncodesAsObject(): void
+    {
+        $this->assertSame('{"5":"a","9":"b"}', Caster::toJson(new ArrayIterator([5 => 'a', 9 => 'b']), 0));
+    }
+
+    /** A 0-based iterable still encodes as a JSON array. */
+    public function testTraversableWithSequentialKeysEncodesAsArray(): void
+    {
+        $this->assertSame('["a","b"]', Caster::toJson(new ArrayIterator(['a', 'b']), 0));
+    }
+
+    public function testToCollectionCastableWithIntKeysEncodesAsObject(): void
+    {
+        $obj = new class implements ToCollection {
+            public function toCollection(): iterable
+            {
+                yield 5 => 'a';
+
+                yield 9 => 'b';
+            }
+        };
+        $this->assertSame('{"5":"a","9":"b"}', Caster::toJson($obj, 0));
+    }
+
     public function testTryToJson(): void
     {
         $this->assertSame('{"a":1}', Caster::tryToJson(['a' => 1], 0));

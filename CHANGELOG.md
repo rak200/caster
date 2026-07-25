@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-07-25
+
+Materialising an iterable now keeps every key, and the enum and date-time converters compose the primitives added by `rak200/utils` 4.4.0 instead of reimplementing them.
+
+### Fixed
+- **`Caster::toArray()` and `Caster::toJson()` no longer renumber int keys.** Materialisation used the spread operator, which preserves string keys but *renumbers int ones* — so `toArray(new ArrayIterator([5 => 'a']))` returned `[0 => 'a']` while the documentation promised keys were preserved. Both now materialise with `iterator_to_array($value, true)`. **Observable change** for an iterable with non-sequential int keys: `toArray` keeps them, and `toJson` (including the `ToCollection` branch of `toString`) encodes such a value as a JSON **object** rather than an array. Lists and string keys are byte-for-byte unchanged, which is why no existing test caught it
+
+### Changed
+- **`rak200/utils` requirement raised `^4.3` → `^4.4`** — `Caster` now calls `Enum::tryFromValue`, `Dt::fromInterface`, `Dt::toEpoch` and `Dt::toEpochFloat`, all new in 4.4.0
+- `Caster::toEnum()` delegates the backed-value lookup to `Enum::tryFromValue()`, replacing the local backing-type branch (derive the backing type from `cases()[0]`, coerce the scalar, `tryFrom`) with a two-step `?? Enum::tryFromName()` chain. Behaviour is identical — the same coercion now lives in utils, where `rak200/http-input` duplicates it too
+- `Caster::toDateTime()` collapses its `DateTimeImmutable` and `DateTime` arms into a single `DateTimeInterface` arm through `Dt::fromInterface()`; an already-immutable instance is still returned as the same instance. Safe because PHP forbids userland implementations of `DateTimeInterface`, so the arm covers exactly the two former ones
+- `Caster::toInt()` and `Caster::toFloat()` read `ToDateTime` values through `Dt::toEpoch()` / `Dt::toEpochFloat()`. The pre-epoch microsecond correction — and the `@infection-ignore-all` documenting it — moves to utils, where it is stated once instead of at every consumer
+- In-code `@infection-ignore-all` suppressions in `Caster` drop from four to three
+- **Deliberate exception to the prefer-utils rule**, recorded in `CLAUDE.md`: materialisation keeps the native `iterator_to_array` (imported via `use function`) rather than `Iter::toArray($value, true)`. The helper binds `TKey of array-key`, which cannot resolve against the unconstrained `Traversable` that `Caster` accepts; adopting it would require a PHPStan suppression or a weaker generic in utils
+
 ## [3.0.3] - 2026-07-25
 
 Maintenance release: the converters are rebuilt on the helpers added by `rak200/utils` 4.2/4.3. No behaviour change — every conversion, exception and edge case is identical.
@@ -169,6 +184,7 @@ Correctness release: every defect found in a full-project review, fixed at the r
 - `Caster` static utility class with `toString()`, `cast()` and `toJson()` methods
 - Type contracts: `Castable`, `ToArray`, `ToBool`, `ToFloat`, `ToInt`, `ToJson`, `ToString`
 
+[3.1.0]: https://github.com/rak200/caster/compare/3.0.3...3.1.0
 [3.0.3]: https://github.com/rak200/caster/compare/3.0.2...3.0.3
 [3.0.2]: https://github.com/rak200/caster/compare/3.0.1...3.0.2
 [3.0.1]: https://github.com/rak200/caster/compare/3.0.0...3.0.1

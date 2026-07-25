@@ -93,7 +93,7 @@ Caster::toFloat(mixed $value): float
 Caster::tryToFloat(mixed $value): ?float
 ```
 
-Resolution order: `float` as-is → `ToFloat` → `ToInt` via `(float)` → `ToNumber` via its string form → `ToBool` as `1.0` / `0.0` → `ToDateTime` as epoch seconds **with microseconds** (`getTimestamp()` plus the microsecond fraction — correct for pre-epoch instants too) → `ToEnum` whose scalar is numeric, parsed by `Num::parseFloatOrNull` → `int` / `bool` via `(float)` → strictly numeric `string` / `Stringable` via `(float)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0.0`.
+Resolution order: `float` as-is → `ToFloat` → `ToInt` via `(float)` → `ToNumber` via its string form → `ToBool` as `1.0` / `0.0` → `ToDateTime` as epoch seconds **with microseconds** (utils' `Dt::toEpochFloat` — correct for pre-epoch instants too) → `ToEnum` whose scalar is numeric, parsed by `Num::parseFloatOrNull` → `int` / `bool` via `(float)` → strictly numeric `string` / `Stringable` via `(float)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0.0`.
 
 ```php
 Caster::toFloat(1.5);      // 1.5
@@ -145,14 +145,17 @@ Caster::toArray(mixed $value): array
 Caster::tryToArray(mixed $value): ?array
 ```
 
-Resolution order: `array` as-is → `ToArray` → `ToCollection` materialised → any other `Traversable` materialised. Materialisation spreads the iterable, so **keys are preserved**.
+Resolution order: `array` as-is → `ToArray` → `ToCollection` materialised → any other `Traversable` materialised. Materialisation **preserves keys** — every key, int ones included, so a non-sequential iterable keeps its indices instead of being renumbered.
 
 ```php
-Caster::toArray([1, 2]);                        // [1, 2]
-Caster::toArray(new ArrayIterator(['a' => 1])); // ['a' => 1]
-Caster::toArray('abc');                         // throws InvalidArgumentException
-Caster::tryToArray('abc');                      // null
+Caster::toArray([1, 2]);                          // [1, 2]
+Caster::toArray(new ArrayIterator(['a' => 1]));   // ['a' => 1]
+Caster::toArray(new ArrayIterator([5 => 'a']));   // [5 => 'a']   (not [0 => 'a'])
+Caster::toArray('abc');                           // throws InvalidArgumentException
+Caster::tryToArray('abc');                        // null
 ```
+
+The keys must be valid PHP array keys (int or string) — a `Traversable` yielding, say, object keys cannot be materialised into an array and fails at runtime.
 
 [↑ Back to top](#caster)
 
@@ -193,7 +196,7 @@ Caster::toDateTime(mixed $value): DateTimeImmutable
 Caster::tryToDateTime(mixed $value): ?DateTimeImmutable
 ```
 
-Resolution order: `DateTimeImmutable` as-is → mutable `DateTime` converted via `createFromMutable` → `ToDateTime` → `ToInt` / `int` interpreted as a **Unix timestamp** (utils' `Dt::fromEpoch`) → `string` / `Stringable` parsed by utils' `Dt::parse` (anything the `DateTimeImmutable` constructor accepts, relative formats included; a malformed string throws `InvalidArgumentException`).
+Resolution order: any `DateTimeInterface` normalised by utils' `Dt::fromInterface` (an already-immutable instance is returned as-is, a mutable `DateTime` is converted) → `ToDateTime` → `ToInt` / `int` interpreted as a **Unix timestamp** (utils' `Dt::fromEpoch`) → `string` / `Stringable` parsed by utils' `Dt::parse` (anything the `DateTimeImmutable` constructor accepts, relative formats included; a malformed string throws `InvalidArgumentException`).
 
 ```php
 Caster::toDateTime(0);                       // 1970-01-01T00:00:00+00:00
@@ -326,7 +329,7 @@ Encodes any value as JSON:
 
 - **`ToJson` objects** delegate directly to their `toJson()` — `$flags` is **ignored**, the object controls its own encoding.
 - **Other `Castable` objects** go through [`cast()`](#cast) first, then the result is encoded.
-- **`Traversable`s** — plain ones and those produced by `cast()` (e.g. a `ToCollection` generator) — are **materialised** before encoding; `json_encode()` does not iterate them and would silently emit `'{}'`.
+- **`Traversable`s** — plain ones and those produced by `cast()` (e.g. a `ToCollection` generator) — are **materialised** before encoding; `json_encode()` does not iterate them and would silently emit `'{}'`. Materialisation preserves keys (same rule as [`toArray`](#toarray--trytoarray)), so a 0-based iterable encodes as a JSON **array** while a non-sequential one encodes as a JSON **object**.
 - **Everything else** is encoded directly via utils' `Json::encode`, which always adds `JSON_THROW_ON_ERROR` — encoding failures throw `JsonException`, never return `false`.
 
 ```php
@@ -334,6 +337,7 @@ Caster::toJson(['a' => 1]);      // "{\n    \"a\": 1\n}" — pretty-printed by d
 Caster::toJson(['a' => 1], 0);   // '{"a":1}' — compact
 Caster::toJson(new Money(1999)); // '{"cents":1999}' — ToJson object, flags ignored
 Caster::toJson(new ArrayIterator([1, 2]), 0);  // '[1,2]' — Traversable materialised
+Caster::toJson(new ArrayIterator([5 => 'a']), 0); // '{"5":"a"}' — keys kept, so an object
 Caster::toJson(fopen('php://memory', 'r'));   // throws JsonException (resource)
 Caster::tryToJson(fopen('php://memory', 'r')); // null
 ```

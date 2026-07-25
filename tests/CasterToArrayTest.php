@@ -73,6 +73,32 @@ final class CasterToArrayTest extends TestCase
         $this->assertSame(['a', 'b'], Caster::toArray($iterator));
     }
 
+    /** Materialisation preserves keys — including non-sequential int keys, which spreading would renumber. */
+    public function testTraversablePreservesIntKeys(): void
+    {
+        $iterator = new ArrayIterator([5 => 'a', 9 => 'b']);
+        $this->assertSame([5 => 'a', 9 => 'b'], Caster::toArray($iterator));
+    }
+
+    public function testTraversablePreservesStringKeys(): void
+    {
+        $iterator = new ArrayIterator(['x' => 1, 'y' => 2]);
+        $this->assertSame(['x' => 1, 'y' => 2], Caster::toArray($iterator));
+    }
+
+    public function testToCollectionGeneratorPreservesIntKeys(): void
+    {
+        $obj = new class implements ToCollection {
+            public function toCollection(): iterable
+            {
+                yield 5 => 'a';
+
+                yield 9 => 'b';
+            }
+        };
+        $this->assertSame([5 => 'a', 9 => 'b'], Caster::toArray($obj));
+    }
+
     public function testStringThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
