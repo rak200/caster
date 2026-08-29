@@ -353,9 +353,7 @@ final class Caster
      */
     public static function toEnum(mixed $value, string $enumClass = UnitEnum::class): UnitEnum
     {
-        // Runtime guard for untyped callers; PHPStan trusts the class-string<T>
-        // annotation and so considers the check redundant.
-        // @phpstan-ignore staticMethod.alreadyNarrowedType
+        // Runtime guard for untyped callers.
         if (!Type::isA($enumClass, UnitEnum::class)) {
             throw new InvalidArgumentException("{$enumClass} is not a UnitEnum");
         }
@@ -364,6 +362,12 @@ final class Caster
         }
         if ($value instanceof ToEnum) {
             $case = $value->toEnum();
+            // The guard above narrows $enumClass to class-string<UnitEnum>, and
+            // toEnum() declares UnitEnum, so PHPStan reads this as always true. At
+            // runtime $enumClass is a *specific* enum and $case may be a case of
+            // another one; T is only bound that loosely because the certain types
+            // cannot carry it.
+            // @phpstan-ignore staticMethod.alreadyNarrowedType
             if (Type::isInstance($case, $enumClass)) {
                 return $case;
             }

@@ -1,10 +1,18 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
 
-The **cross-library rak200 PHP conventions** (baseline & tooling, dev dependencies, CI, code style, naming, `use function` inventory, first-class callables, correctness-over-efficiency, safe defaults, testing, versioning, README badges) are shared and imported below. This file keeps only what is specific to **caster**.
+The cross-repository conventions are imported below — Layer 1 (language-agnostic: versioning,
+commits, the pipeline, the task vocabulary, support files, README badges) and Layer 2 (PHP: the
+analyser, the formatter, the mutation configuration). This file keeps only what is specific to
+**caster**.
 
-@~/.claude/rak200-php-conventions.md
+@.rak200/CONVENTIONS.md
+@vendor/rak200/coding-standard-php/CONVENTIONS.md
+
+> If `.rak200/` is empty, the clone skipped its submodule:
+> `git submodule update --init --recursive`. If the second import is missing, run
+> `composer install` — PHP development needs it anyway.
 
 ## Project Overview
 
@@ -73,13 +81,8 @@ General testing conventions are in the shared file. caster specifics:
 
 - PHPUnit is configured via `phpunit.xml` with a single `Unit` suite.
 - The suite is split per converter: one `CasterTo<Type>Test.php` per universal converter (covering its `try*` twin too), plus `CasterCastTest.php` (`cast()`/`tryCast()` dispatch), `CasterBcMathTest.php` (BcMath edge cases) and `DefaultCasterTest.php` (interface delegation + mockability).
-- **Mutation testing** — Infection (`infection/infection`, config `infection.json5.dist`) runs via `composer infection` (locally through Xdebug via the script's `XDEBUG_MODE=coverage`; CI uses pcov). The **MSI gate is closed at 100** (`minMsi=100` / `minCoveredMsi=100`), enforced by a floor-only CI step. Surviving mutants are killed by strengthening tests, or — when provably equivalent — suppressed in-code with `@infection-ignore-all` anchored on the smallest node that isolates just the equivalent construct (the three remaining PHPStan-only casts / re-cast `Stringable`), or removed as dead code when even that can't reach the mutation (the redundant `toNumber` `Number => $value` fast-path arm — `MatchArmRemoval` targets the parent `Match_` node, not the arm, and the fall-through `Num::parseNumber` returns the same instance); the threshold is never lowered.
+- **Mutation testing** — Infection (`infection/infection`, config `infection.json5.dist`) runs via `composer mutation` (locally through Xdebug via the script's `XDEBUG_MODE=coverage`; CI uses pcov, and narrows the run to the changed lines on a pull request). The **MSI gate is closed at 100** (`minMsi=100` / `minCoveredMsi=100`), enforced by a floor-only CI step. Surviving mutants are killed by strengthening tests, or — when provably equivalent — suppressed in-code with `@infection-ignore-all` anchored on the smallest node that isolates just the equivalent construct (the three remaining PHPStan-only casts / re-cast `Stringable`), or removed as dead code when even that can't reach the mutation (the redundant `toNumber` `Number => $value` fast-path arm — `MatchArmRemoval` targets the parent `Match_` node, not the arm, and the fall-through `Num::parseNumber` returns the same instance); the threshold is never lowered.
 
 ## Versioning & releases
 
 SemVer policy and the release checklist live in the shared conventions. caster delta: not on Packagist yet — consumers add this repo (and `rak200/utils`) as `"type": "vcs"` and resolve versions from git tags.
-
-## Roadmap
-
-Pending work only — items are **pruned** on delivery (shared release checklist); `CHANGELOG.md` is the historical record.
-
