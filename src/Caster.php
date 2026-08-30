@@ -362,12 +362,7 @@ final class Caster
         }
         if ($value instanceof ToEnum) {
             $case = $value->toEnum();
-            // The guard above narrows $enumClass to class-string<UnitEnum>, and
-            // toEnum() declares UnitEnum, so PHPStan reads this as always true. At
-            // runtime $enumClass is a *specific* enum and $case may be a case of
-            // another one; T is only bound that loosely because the certain types
-            // cannot carry it.
-            // @phpstan-ignore staticMethod.alreadyNarrowedType
+            // @phpstan-ignore staticMethod.alreadyNarrowedType (the guard above narrows $enumClass to class-string<UnitEnum> and toEnum() declares UnitEnum, so the certain types read this as always true; at runtime $enumClass is a specific enum and $case may be a case of another one)
             if (Type::isInstance($case, $enumClass)) {
                 return $case;
             }

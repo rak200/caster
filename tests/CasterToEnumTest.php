@@ -93,7 +93,7 @@ final class CasterToEnumTest extends TestCase
     public function testNonEnumClassThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        // @phpstan-ignore-next-line argument.type
+        // @phpstan-ignore argument.type (reached only by a caller that ignores the class-string<T of UnitEnum> annotation, which is the case under test), argument.templateType (reached only by a caller that ignores the class-string<T of UnitEnum> annotation, which is the case under test)
         Caster::toEnum('hello', stdClass::class);
     }
 
@@ -205,7 +205,7 @@ final class CasterToEnumTest extends TestCase
     /** Any failure returns null — including a class-string that is not an enum. */
     public function testTryToEnumNullOnNonEnumClass(): void
     {
-        // @phpstan-ignore-next-line argument.type
+        // @phpstan-ignore argument.type (reached only by a caller that ignores the class-string<T of UnitEnum> annotation, which is the case under test), argument.templateType (reached only by a caller that ignores the class-string<T of UnitEnum> annotation, which is the case under test)
         $this->assertNull(Caster::tryToEnum('hello', stdClass::class));
     }
 }
