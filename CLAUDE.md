@@ -2,10 +2,12 @@
 
 Guidance for Claude Code when working in this repository.
 
-The cross-repository conventions are imported below — Layer 1 (language-agnostic: versioning,
-commits, the pipeline, the task vocabulary, support files, README badges) and Layer 2 (PHP: the
-analyser, the formatter, the mutation configuration). This file keeps only what is specific to
-**caster**.
+The cross-repository conventions are imported below, and this file keeps only what is specific to
+**caster**. Layer 1 is language-agnostic: versioning and releases, commits, the pipeline, the
+shared task vocabulary, testing policy, documentation, proposals, support files, repository
+hygiene, README badges, security, and the non-negotiables. Layer 2 is PHP: the baseline, what each
+verb runs, static analysis, code style, naming, member order, prefer-`utils`-over-native,
+correctness over efficiency, safe defaults, and the form of tests and docblocks.
 
 @.rak200/CONVENTIONS.md
 @vendor/rak200/coding-standard-php/CONVENTIONS.md
@@ -18,7 +20,7 @@ analyser, the formatter, the mutation configuration). This file keeps only what 
 
 **rak200/caster** is a PHP 8.4+ library providing type casting contracts (interfaces) and a `Caster` utility class that converts arbitrary values to those types.
 
-**Deliberate deviation from the shared "no runtime Composer dependencies" rule:** caster requires **`rak200/utils` (`^4.4`)** at runtime — the converters are built on its `Type`, `Enum`, `Num`, `Iter`, `Dt` and `Json` helpers (the prefer-lib-over-native rule applied across libraries). The one native kept against that rule is `iterator_to_array` (imported via `use function`, with the reason stated at the import): materialisation must preserve keys for an **arbitrary** `Traversable`, and `Iter::toArray()` binds `TKey of array-key`, which cannot resolve against the unconstrained iterables `Caster` accepts — adopting it would need a PHPStan suppression or a weaker generic in utils. utils is consumed through a `"type": "vcs"` repository entry until both libraries land on Packagist (see Roadmap); consumers must therefore list **both** VCS repositories (Composer reads `repositories` only from the root project — the README's Installation section shows this).
+**Deliberate deviation from the shared "no runtime Composer dependencies" rule:** caster requires **`rak200/utils` (`^4.4`)** at runtime — the converters are built on its `Type`, `Enum`, `Num`, `Iter`, `Dt` and `Json` helpers (the prefer-lib-over-native rule applied across libraries). The one native kept against that rule is `iterator_to_array` (imported via `use function`, with the reason stated at the import): materialisation must preserve keys for an **arbitrary** `Traversable`, and `Iter::toArray()` binds `TKey of array-key`, which cannot resolve against the unconstrained iterables `Caster` accepts — adopting it would need a PHPStan suppression or a weaker generic in utils. utils is consumed through a `"type": "vcs"` repository entry until both libraries land on Packagist (see [ROADMAP.md](ROADMAP.md)); consumers must therefore list **both** VCS repositories (Composer reads `repositories` only from the root project — the README's Installation section shows this).
 
 ## Structure
 
@@ -77,7 +79,7 @@ Other:
 
 ## Testing
 
-General testing conventions are in the shared file. caster specifics:
+Testing **policy** is Layer 1 and testing **form** is Layer 2. caster specifics:
 
 - PHPUnit is configured via `phpunit.xml` with a single `Unit` suite.
 - The suite is split per converter: one `CasterTo<Type>Test.php` per universal converter (covering its `try*` twin too), plus `CasterCastTest.php` (`cast()`/`tryCast()` dispatch), `CasterBcMathTest.php` (BcMath edge cases) and `DefaultCasterTest.php` (interface delegation + mockability).
@@ -85,4 +87,4 @@ General testing conventions are in the shared file. caster specifics:
 
 ## Versioning & releases
 
-SemVer policy and the release checklist live in the shared conventions. caster delta: not on Packagist yet — consumers add this repo (and `rak200/utils`) as `"type": "vcs"` and resolve versions from git tags.
+SemVer policy and the release checklist are Layer 1. caster delta: not on Packagist yet — consumers add this repo (and `rak200/utils`) as `"type": "vcs"` and resolve versions from git tags.
