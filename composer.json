@@ -2,6 +2,7 @@
     "name": "rak200/caster",
     "description": "Type casting contracts and utilities for PHP 8.4+",
     "type": "library",
+    "minimum-stability": "not-a-valid-stability",
     "license": "MIT",
     "keywords": [
         "casting",
