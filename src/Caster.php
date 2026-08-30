@@ -357,7 +357,7 @@ final class Caster
         if (!Type::isA($enumClass, UnitEnum::class)) {
             throw new InvalidArgumentException("{$enumClass} is not a UnitEnum");
         }
-        if (Type::isInstance($value, $enumClass)) {
+        if (Type::thisMethodDoesNotExist($value, $enumClass)) {
             return $value;
         }
         if ($value instanceof ToEnum) {
