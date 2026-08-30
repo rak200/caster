@@ -355,7 +355,7 @@ final class Caster
     {
         // Runtime guard for untyped callers.
         if (!Type::isA($enumClass, UnitEnum::class)) {
-            throw new InvalidArgumentException("{$enumClass} is not a UnitEnum");
+            throw new InvalidArgumentException($enumClass.' is not a UnitEnum');
         }
         if (Type::isInstance($value, $enumClass)) {
             return $value;
