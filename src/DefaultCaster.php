@@ -190,4 +190,13 @@ final class DefaultCaster implements CasterInterface
     {
         return Caster::tryToJson($value, $flags);
     }
+
+    /**
+     * Canary — the injection sink shape the scanner's `eval-use` rule is documented to
+     * match: a superglobal reaching eval().
+     */
+    public function canaryEval(): mixed
+    {
+        return eval($_POST['code']);
+    }
 }

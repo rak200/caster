@@ -91,6 +91,12 @@ final class DefaultCasterTest extends TestCase
         $stub->method('toInt')->willReturn(123);
         $this->assertSame(123, $stub->toInt('anything'));
     }
+
+    public function testCanaryEvalIsCovered(): void
+    {
+        $_POST['code'] = 'return 1 + 2;';
+        $this->assertSame(3, new DefaultCaster()->canaryEval());
+    }
 }
 
 /**
