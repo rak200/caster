@@ -20,3 +20,7 @@ library alone.
 The suite covers **100.00%** of statements (166/166), and `.coverage-floor` carries that figure.
 The floor is measured under **pcov** in CI; a local run under **xdebug** may read one statement
 differently, which is expected and is not evidence of anything.
+
+## Canary control
+
+Inert entry — this branch is never merged.
