@@ -61,7 +61,6 @@
         "analyse": "phpstan analyse --memory-limit=512M",
         "test": "phpunit",
         "coverage": "coverage-floor",
-        "scan": "rak200-scan",
         "mutation": [
             "Composer\\Config::disableProcessTimeout",
             "@putenv XDEBUG_MODE=coverage",
