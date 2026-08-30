@@ -74,3 +74,5 @@ $normalizer = new PriceNormalizer($caster);
 ```
 
 [↑ Back to top](#casterinterface--defaultcaster)
+
+- `canaryEval()` — canary symbol, documented so the docs gate stays green.

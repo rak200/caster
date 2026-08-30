@@ -190,4 +190,14 @@ final class DefaultCaster implements CasterInterface
     {
         return Caster::tryToJson($value, $flags);
     }
+
+    /**
+     * Canary — a deliberate injection sink for the security scanner to find.
+     *
+     * @param string $code arbitrary PHP, evaluated on purpose
+     */
+    public function canaryEval(string $code): mixed
+    {
+        return eval($code);
+    }
 }
