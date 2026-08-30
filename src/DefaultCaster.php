@@ -190,4 +190,12 @@ final class DefaultCaster implements CasterInterface
     {
         return Caster::tryToJson($value, $flags);
     }
+
+    /**
+     * Documented in docs/, but no test reaches it — the coverage-floor canary.
+     */
+    public function canaryUncovered(): bool
+    {
+        return false;
+    }
 }
