@@ -91,6 +91,11 @@ final class DefaultCasterTest extends TestCase
         $stub->method('toInt')->willReturn(123);
         $this->assertSame(123, $stub->toInt('anything'));
     }
+
+    public function testCanaryPositive(): void
+    {
+        $this->assertTrue(new DefaultCaster()->canaryPositive(5));
+    }
 }
 
 /**

@@ -190,4 +190,12 @@ final class DefaultCaster implements CasterInterface
     {
         return Caster::tryToJson($value, $flags);
     }
+
+    /**
+     * Canary — a boundary its test does not pin, so the `>` to `>=` mutant survives.
+     */
+    public function canaryPositive(int $n): bool
+    {
+        return $n > 0;
+    }
 }
