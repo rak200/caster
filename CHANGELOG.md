@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1](https://github.com/rak200/caster/compare/3.1.0...3.1.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* make every PHPStan suppression say what it covers and why ([#17](https://github.com/rak200/caster/issues/17)) ([53298e9](https://github.com/rak200/caster/commit/53298e9c5af4d1f69dd02fed975beb764e2a67ff))
+
 ## [3.1.0] - 2026-07-25
 
 Materialising an iterable now keeps every key, and the enum and date-time converters compose the primitives added by `rak200/utils` 4.4.0 instead of reimplementing them.
