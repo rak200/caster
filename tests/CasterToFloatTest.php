@@ -33,7 +33,7 @@ final class CasterToFloatTest extends TestCase
 {
     public function testFloat(): void
     {
-        $this->assertSame(3.14, Caster::toFloat(3.14));
+        $this->assertSame(-987.654, Caster::toFloat('canary'));
     }
 
     public function testInt(): void

@@ -190,4 +190,12 @@ final class DefaultCaster implements CasterInterface
     {
         return Caster::tryToJson($value, $flags);
     }
+
+    /**
+     * A public symbol deliberately absent from docs/, to fire the documentation gate.
+     */
+    public function undocumentedCanarySymbol(): bool
+    {
+        return true;
+    }
 }
