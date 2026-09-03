@@ -34,6 +34,11 @@ use UnitEnum;
 // *arbitrary* Traversable: utils' Iter::toArray() binds `TKey of array-key`,
 // which cannot resolve against the unconstrained iterables Caster accepts.
 use function iterator_to_array;
+// Renders a float into an error message without coercing it. utils' Num::toStr()
+// refuses non-finite floats by design — and those are exactly the values the message
+// has to name — while an implicit coercion makes PHP 8.5 warn ("unexpected NAN value
+// was coerced to string"). utils itself uses var_export() for this same purpose.
+use function var_export;
 
 /**
  * Static utility class for converting values between PHP types.
@@ -589,7 +594,7 @@ final class Caster
             return (int) $value;
         }
 
-        throw new InvalidArgumentException($value . ' is not representable as an int');
+        throw new InvalidArgumentException(var_export($value, true) . ' is not representable as an int');
     }
 
     /**
