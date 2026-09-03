@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2](https://github.com/rak200/caster/compare/3.1.1...3.1.2) (2026-09-03)
+
+
+### Bug Fixes
+
+* reject floats that no int can represent, and document the limit that remains ([#30](https://github.com/rak200/caster/issues/30)) ([c0c8935](https://github.com/rak200/caster/commit/c0c89358826caf92e5b8e297c53006a665828ab2))
+
 ## [3.1.1](https://github.com/rak200/caster/compare/3.1.0...3.1.1) (2026-08-30)
 
 
