@@ -2,7 +2,7 @@
 
 [← Reference](README.md)
 
-Static utility class for converting values between PHP types. Dispatches to the appropriate contract method when the value implements one of the [Castable contracts](contracts.md), and falls back to native PHP coercions for primitives. Every converter throws `InvalidArgumentException` for values it cannot convert, and has a `try*` twin that returns `null` instead of throwing. Two converters have documented exceptions to that rule at the numeric limits — see the **Limitations** under [`toInt`](#limitations) and [`toFloat`](#limitations-1). The same API is also available instance-level for dependency injection and mocking — see [`CasterInterface` / `DefaultCaster`](caster-interface.md).
+Static utility class for converting values between PHP types. Dispatches to the appropriate contract method when the value implements one of the [Castable contracts](contracts.md), and falls back to native PHP coercions for primitives. Every converter throws `InvalidArgumentException` for values it cannot convert, and has a `try*` twin that returns `null` instead of throwing. One documented exception remains, on `toInt`'s string path — see its [**Limitations**](#limitations). The same API is also available instance-level for dependency injection and mocking — see [`CasterInterface` / `DefaultCaster`](caster-interface.md).
 
 ```php
 use Rak200\Caster\Caster;
@@ -64,7 +64,7 @@ Caster::toInt(mixed $value): int
 Caster::tryToInt(mixed $value): ?int
 ```
 
-Resolution order: `int` as-is → `ToInt` → `ToFloat` truncated by `(int)` → `ToNumber` via its string form → `ToBool` as `1` / `0` → `ToDateTime` as its **Unix timestamp** → int-backed `ToEnum` as its backing value → `float` / `bool` via `(int)` → strictly numeric `string` / `Stringable` via `(int)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0`.
+Resolution order: `int` as-is → `ToInt` → `ToFloat` truncated by `(int)` → `ToNumber` via its string form → `ToBool` as `1` / `0` → `ToDateTime` as its **Unix timestamp** → int-backed `ToEnum` as its backing value → `bool` via `(int)` → `float` via `(int)`, **provided an int can represent it** → strictly numeric `string` / `Stringable` via `(int)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0`. So do `NAN`, the infinities, and any float beyond the int64 range, which `(int)` would otherwise wrap silently.
 
 ```php
 Caster::toInt(42);        // 42
@@ -82,40 +82,40 @@ Caster::tryToInt('17');   // 17
 
 A string-backed or pure `ToEnum` does **not** match the enum branch — it falls through and throws unless another branch applies.
 
+### Floats an int cannot represent
+
+These throw rather than converting. Unguarded, PHP's `(int)` cast returns a number for every one of them — `0` for the non-finite ones, and a wrapped value beyond the range whose sign can even flip:
+
+```php
+Caster::toInt(NAN);       // throws InvalidArgumentException — would be 0
+Caster::toInt(INF);       // throws                          — would be 0
+Caster::toInt(1e20);      // throws                          — would be 7766279631452241920
+Caster::toInt(9.3e18);    // throws                          — would be -9146744073709551616
+Caster::tryToInt(NAN);    // null
+```
+
+The boundary is exact — the largest and smallest doubles that fit still convert:
+
+```php
+Caster::toInt((float) PHP_INT_MIN);       // PHP_INT_MIN
+Caster::toInt(9.2233720368547748E18);     // 9223372036854774784  (the last one that fits)
+Caster::toInt(9.2233720368547758E18);     // throws — this is 2**63, one ULP too far
+```
+
 ### Limitations
 
-Two cases return a value where the rest of the method would throw. Both are PHP's `(int)` cast showing through, and both are deliberate: guarding the second one exactly would put arbitrary-precision arithmetic on a path that almost never needs it. They are documented rather than fixed.
+One case returns a value where the rest of the method throws, and it is documented rather than fixed.
 
-**Non-finite floats convert to `0`.** This one is not about extreme values — `NAN` and the infinities come out of ordinary float arithmetic and out of external data, so they reach callers working entirely with small numbers:
-
-```php
-Caster::toInt(NAN);       // 0  — not a throw
-Caster::toInt(INF);       // 0
-Caster::toInt(-INF);      // 0
-```
-
-The guard to write when the value's origin is not yours, using utils' `Num`:
+**A numeric *string* beyond the int64 range saturates at `PHP_INT_MAX`** instead of throwing:
 
 ```php
-use Rak200\Utils\Num;
-
-if (!Num::isFinite($raw)) {
-    // reject it here — Caster::toInt() will not
-}
-
-$int = Caster::toInt($raw);
-```
-
-**Magnitudes beyond the int64 range do not throw, and the float and string paths disagree.** A float wraps around, and the sign can flip; a numeric string saturates at `PHP_INT_MAX`:
-
-```php
-Caster::toInt(1e20);      // 7766279631452241920   — wrapped
-Caster::toInt(9.3e18);    // -9146744073709551616  — wrapped, and now negative
-Caster::toInt('1e20');    // 9223372036854775807   — saturated instead
+Caster::toInt('1e20');                 // 9223372036854775807 — saturated, not a throw
 Caster::toInt('9223372036854775808');  // 9223372036854775807
 ```
 
-[`toNumber`](#tonumber--trytonumber) has neither limitation — it is exact at any magnitude and throws on non-finite input. Reach for it whenever the magnitude is unbounded, and convert down only once you know it fits.
+Deciding this exactly needs arbitrary-precision arithmetic rather than a float comparison: `(float) '9223372036854775807'` rounds *up* to 2⁶³, so comparing in float would refuse a string that fits perfectly. That is more machinery than the string path warrants.
+
+[`toNumber`](#tonumber--trytonumber) has no such limitation — it is exact at any magnitude and throws on non-finite input. Reach for it whenever the magnitude is unbounded, and convert down only once you know it fits.
 
 [↑ Back to top](#caster)
 
@@ -128,7 +128,7 @@ Caster::toFloat(mixed $value): float
 Caster::tryToFloat(mixed $value): ?float
 ```
 
-Resolution order: `float` as-is → `ToFloat` → `ToInt` via `(float)` → `ToNumber` via its string form → `ToBool` as `1.0` / `0.0` → `ToDateTime` as epoch seconds **with microseconds** (utils' `Dt::toEpochFloat` — correct for pre-epoch instants too) → `ToEnum` whose scalar is numeric, parsed by `Num::parseFloatOrNull` → `int` / `bool` via `(float)` → strictly numeric `string` / `Stringable` via `(float)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0.0`.
+Resolution order: `float` as-is → `ToFloat` → `ToInt` via `(float)` → `ToNumber` via its string form → `ToBool` as `1.0` / `0.0` → `ToDateTime` as epoch seconds **with microseconds** (utils' `Dt::toEpochFloat` — correct for pre-epoch instants too) → `ToEnum` whose scalar is numeric, parsed by `Num::parseFloatOrNull` → `int` / `bool` via `(float)` → strictly numeric `string` / `Stringable` via `(float)`, **provided the result is finite**. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0.0` — and so does a numeric string too large for a double, which would otherwise become `INF`.
 
 ```php
 Caster::toFloat(1.5);      // 1.5
@@ -140,19 +140,21 @@ Caster::toFloat(null);     // throws InvalidArgumentException
 Caster::tryToFloat('abc'); // null
 ```
 
-### Limitations
+### Non-finite values
 
-**Non-finite values pass through.** A float can represent `NAN` and the infinities, so they are returned rather than rejected — unlike [`toInt`](#toint--trytoint), where the same values silently become `0`:
+**A non-finite float passes through.** A float can represent `NAN` and the infinities, so `toFloat` returns what it was given rather than rejecting it — unlike [`toInt`](#toint--trytoint), where no int can represent them and they throw:
 
 ```php
 Caster::toFloat(NAN);      // NAN
 Caster::toFloat(INF);      // INF
 ```
 
-**A finite string too large for a float becomes `INF`.** This is the one path that *creates* a non-finite value out of a finite input, and it does not throw:
+**Creating one is refused.** A numeric string too large for a double throws instead of becoming `INF`, on all three parsing paths (`string`, `Stringable`, and a `ToEnum` whose scalar is numeric):
 
 ```php
-Caster::toFloat('1e400');  // INF — not a throw
+Caster::toFloat('1e308');  // 1.0E+308 — fits
+Caster::toFloat('1e400');  // throws InvalidArgumentException — would be INF
+Caster::tryToFloat('1e400'); // null
 ```
 
 [`toNumber`](#tonumber--trytonumber) is exact at any magnitude and rejects non-finite input.

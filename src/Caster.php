@@ -104,20 +104,18 @@ final class Caster
      * Strings (and Stringables) must be strictly numeric — no surrounding
      * whitespace; non-numeric strings throw instead of coercing to 0.
      *
-     * Two limitations are inherited from PHP's (int) cast and deliberately not
-     * guarded against, because guarding the second one exactly costs arbitrary-
-     * precision arithmetic on a path that almost never needs it:
+     * A float no int can represent throws rather than converting: NAN, the
+     * infinities, and any magnitude beyond the int64 range, which PHP's (int)
+     * would wrap silently — 9.3e18 comes back as -9146744073709551616, sign and
+     * all. PHP 8.5 warns on that same cast.
      *
-     *  - NAN and the infinities convert to 0 rather than throwing. These do not
-     *    only arise from extreme values — float arithmetic and external data
-     *    produce them at any magnitude — so test with Num::isFinite() first when
-     *    the value's origin is not yours.
-     *  - A magnitude beyond the int64 range does not throw, and the two paths
-     *    disagree: a float wraps around and its sign can flip (9.3e18 gives
-     *    -9146744073709551616), while a numeric string saturates at PHP_INT_MAX.
-     *
-     * {@see self::toNumber()} has neither limitation and is the conversion to
-     * reach for when the magnitude is unbounded.
+     * One limitation remains, on the string path only: a numeric *string* beyond
+     * the int64 range saturates at PHP_INT_MAX instead of throwing. Deciding it
+     * exactly needs arbitrary-precision arithmetic — (float) '9223372036854775807'
+     * rounds up to 2**63, so a float comparison refuses a string that fits — which
+     * is more machinery than that path warrants. {@see self::toNumber()} has no
+     * such limitation and is the conversion to reach for when the magnitude is
+     * unbounded.
      *
      * @param mixed $value the value to convert
      *
@@ -130,12 +128,14 @@ final class Caster
         return match (true) {
             Type::isInt($value) => $value,
             $value instanceof ToInt => $value->toInt(),
-            $value instanceof ToFloat => (int) $value->toFloat(),
+            $value instanceof ToFloat => self::intFromFloat($value->toFloat()),
             $value instanceof ToNumber => (int) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1 : 0,
             $value instanceof ToDateTime => Dt::toEpoch($value->toDateTime()),
             $value instanceof ToEnum && Type::isInt($i = Enum::intOrNull($value->toEnum())) => $i,
-            Type::isFloat($value) || Type::isBool($value) => (int) $value,
+            // bool is split out from float: it always fits, and never needs the guard.
+            Type::isBool($value) => (int) $value,
+            Type::isFloat($value) => self::intFromFloat($value),
             Type::isStr($value) && Num::is($value) => (int) $value,
             $value instanceof Stringable && Num::is($v = (string) $value) => (int) /* @infection-ignore-all: $v is already a string */ (string) $v,
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to int'),
@@ -161,10 +161,9 @@ final class Caster
      * whitespace; non-numeric strings throw instead of coercing to 0.0.
      *
      * Non-finite values are passed through, not rejected: a float can represent
-     * NAN and the infinities, so NAN in gives NAN out. A finite numeric string
-     * too large for a float is the one case where one is *created* — '1e400'
-     * gives INF rather than throwing. {@see self::toNumber()} is exact at any
-     * magnitude.
+     * NAN and the infinities, so NAN in gives NAN out. What is *not* allowed is
+     * creating one — a numeric string too large for a float ('1e400') throws
+     * rather than becoming INF. {@see self::toNumber()} is exact at any magnitude.
      *
      * @param mixed $value the value to convert
      *
@@ -182,10 +181,10 @@ final class Caster
             $value instanceof ToNumber => (float) (string) $value->toNumber(),
             $value instanceof ToBool => $value->toBool() ? 1.0 : 0.0,
             $value instanceof ToDateTime => Dt::toEpochFloat($value->toDateTime()),
-            $value instanceof ToEnum && Type::isFloat($f = Num::parseFloatOrNull((string) Enum::scalar($value->toEnum()))) => $f,
+            $value instanceof ToEnum && Type::isFloat($f = self::finiteFloatOrNull((string) Enum::scalar($value->toEnum()))) => $f,
             Type::isInt($value) || Type::isBool($value) => (float) $value,
-            Type::isStr($value) && Type::isFloat($f = Num::parseFloatOrNull($value)) => $f,
-            $value instanceof Stringable && Type::isFloat($f = Num::parseFloatOrNull((string) $value)) => $f,
+            Type::isStr($value) && Type::isFloat($f = self::finiteFloatOrNull($value)) => $f,
+            $value instanceof Stringable && Type::isFloat($f = self::finiteFloatOrNull((string) $value)) => $f,
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to float'),
         };
     }
@@ -565,5 +564,45 @@ final class Caster
         } catch (InvalidArgumentException|JsonException) {
             return null;
         }
+    }
+
+    /**
+     * Convert a float to an int, refusing the values no int can represent.
+     *
+     * @throws InvalidArgumentException when $value is non-finite or outside the int64 range
+     */
+    private static function intFromFloat(float $value): int
+    {
+        // The bound is derived from PHP_INT_MIN because that one IS exactly
+        // representable as a double; PHP_INT_MAX is not — it rounds up to 2**63,
+        // which does not fit, so comparing against it would let a wrapping value
+        // through. NAN and the infinities fail both comparisons on their own —
+        // every comparison against NAN is false — so finiteness needs no separate
+        // test. PHP 8.5 warns on precisely the cast this guards.
+        // @infection-ignore-all: dropping the cast is equivalent — PHP promotes int
+        // PHP_INT_MIN to this same float in the comparison, and -PHP_INT_MIN overflows
+        // to the same 2**63 — but it would leave the line resting on two implicit
+        // conversions instead of stating the domain it works in.
+        $min = (float) PHP_INT_MIN;
+
+        if ($value >= $min && $value < -$min) {
+            return (int) $value;
+        }
+
+        throw new InvalidArgumentException($value . ' is not representable as an int');
+    }
+
+    /**
+     * Parse a numeric string to a float, rejecting the magnitudes that overflow to INF.
+     *
+     * Num::parseFloatOrNull() returns INF for '1e400', which would hand a caller a
+     * non-finite value built out of a finite one. Returning null instead lets the
+     * calling arm fall through to the throw.
+     */
+    private static function finiteFloatOrNull(string $value): ?float
+    {
+        $float = Num::parseFloatOrNull($value);
+
+        return Type::isFloat($float) && Num::isFinite($float) ? $float : null;
     }
 }
