@@ -209,6 +209,21 @@ final class CasterToFloatTest extends TestCase
     {
         $this->assertNull(Caster::tryToFloat('abc'));
     }
+
+    // Both cases below assert a DOCUMENTED LIMITATION — see the toFloat() docblock,
+    // docs/caster.md and issue #23. Non-finite values are passed through rather
+    // than rejected, and one path creates a non-finite value from a finite input.
+
+    public function testDocumentedLimitNonFiniteFloatsPassThrough(): void
+    {
+        $this->assertNan(Caster::toFloat(NAN));
+        $this->assertInfinite(Caster::toFloat(INF));
+    }
+
+    public function testDocumentedLimitStringTooLargeForFloatBecomesInfinite(): void
+    {
+        $this->assertInfinite(Caster::toFloat('1e400'));
+    }
 }
 
 enum CasterToFloatTestLevel: int

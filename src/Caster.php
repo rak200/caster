@@ -104,6 +104,21 @@ final class Caster
      * Strings (and Stringables) must be strictly numeric — no surrounding
      * whitespace; non-numeric strings throw instead of coercing to 0.
      *
+     * Two limitations are inherited from PHP's (int) cast and deliberately not
+     * guarded against, because guarding the second one exactly costs arbitrary-
+     * precision arithmetic on a path that almost never needs it:
+     *
+     *  - NAN and the infinities convert to 0 rather than throwing. These do not
+     *    only arise from extreme values — float arithmetic and external data
+     *    produce them at any magnitude — so test with Num::isFinite() first when
+     *    the value's origin is not yours.
+     *  - A magnitude beyond the int64 range does not throw, and the two paths
+     *    disagree: a float wraps around and its sign can flip (9.3e18 gives
+     *    -9146744073709551616), while a numeric string saturates at PHP_INT_MAX.
+     *
+     * {@see self::toNumber()} has neither limitation and is the conversion to
+     * reach for when the magnitude is unbounded.
+     *
      * @param mixed $value the value to convert
      *
      * @return int the integer representation of $value
@@ -144,6 +159,12 @@ final class Caster
      *
      * Strings (and Stringables) must be strictly numeric — no surrounding
      * whitespace; non-numeric strings throw instead of coercing to 0.0.
+     *
+     * Non-finite values are passed through, not rejected: a float can represent
+     * NAN and the infinities, so NAN in gives NAN out. A finite numeric string
+     * too large for a float is the one case where one is *created* — '1e400'
+     * gives INF rather than throwing. {@see self::toNumber()} is exact at any
+     * magnitude.
      *
      * @param mixed $value the value to convert
      *

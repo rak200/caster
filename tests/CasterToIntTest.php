@@ -234,6 +234,33 @@ final class CasterToIntTest extends TestCase
     {
         $this->assertNull(Caster::tryToInt(null));
     }
+
+    // The three cases below assert a DOCUMENTED LIMITATION, not desired behaviour:
+    // toInt() inherits PHP's (int) cast at the numeric limits instead of throwing.
+    // They exist so the limitation cannot change without the documentation in
+    // docs/caster.md and the toInt() docblock changing with it. See issue #23.
+
+    public function testDocumentedLimitNonFiniteFloatsBecomeZero(): void
+    {
+        $this->assertSame(0, Caster::toInt(NAN));
+        $this->assertSame(0, Caster::toInt(INF));
+        $this->assertSame(0, Caster::toInt(-INF));
+    }
+
+    public function testDocumentedLimitFloatBeyondIntRangeWrapsAround(): void
+    {
+        $this->assertSame(7766279631452241920, Caster::toInt(1e20));
+
+        // The sign flips: a positive float comes back as a negative int.
+        $this->assertSame(-9146744073709551616, Caster::toInt(9.3e18));
+    }
+
+    public function testDocumentedLimitNumericStringBeyondIntRangeSaturates(): void
+    {
+        // The string path saturates where the float path above wraps.
+        $this->assertSame(PHP_INT_MAX, Caster::toInt('1e20'));
+        $this->assertSame(PHP_INT_MAX, Caster::toInt('9223372036854775808'));
+    }
 }
 
 enum CasterToIntTestLevel: int

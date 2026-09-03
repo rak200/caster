@@ -2,7 +2,7 @@
 
 [← Reference](README.md)
 
-Static utility class for converting values between PHP types. Dispatches to the appropriate contract method when the value implements one of the [Castable contracts](contracts.md), and falls back to native PHP coercions for primitives. Every converter throws `InvalidArgumentException` for values it cannot convert, and has a `try*` twin that returns `null` instead of throwing. The same API is also available instance-level for dependency injection and mocking — see [`CasterInterface` / `DefaultCaster`](caster-interface.md).
+Static utility class for converting values between PHP types. Dispatches to the appropriate contract method when the value implements one of the [Castable contracts](contracts.md), and falls back to native PHP coercions for primitives. Every converter throws `InvalidArgumentException` for values it cannot convert, and has a `try*` twin that returns `null` instead of throwing. Two converters have documented exceptions to that rule at the numeric limits — see the **Limitations** under [`toInt`](#limitations) and [`toFloat`](#limitations-1). The same API is also available instance-level for dependency injection and mocking — see [`CasterInterface` / `DefaultCaster`](caster-interface.md).
 
 ```php
 use Rak200\Caster\Caster;
@@ -82,6 +82,41 @@ Caster::tryToInt('17');   // 17
 
 A string-backed or pure `ToEnum` does **not** match the enum branch — it falls through and throws unless another branch applies.
 
+### Limitations
+
+Two cases return a value where the rest of the method would throw. Both are PHP's `(int)` cast showing through, and both are deliberate: guarding the second one exactly would put arbitrary-precision arithmetic on a path that almost never needs it. They are documented rather than fixed.
+
+**Non-finite floats convert to `0`.** This one is not about extreme values — `NAN` and the infinities come out of ordinary float arithmetic and out of external data, so they reach callers working entirely with small numbers:
+
+```php
+Caster::toInt(NAN);       // 0  — not a throw
+Caster::toInt(INF);       // 0
+Caster::toInt(-INF);      // 0
+```
+
+The guard to write when the value's origin is not yours, using utils' `Num`:
+
+```php
+use Rak200\Utils\Num;
+
+if (!Num::isFinite($raw)) {
+    // reject it here — Caster::toInt() will not
+}
+
+$int = Caster::toInt($raw);
+```
+
+**Magnitudes beyond the int64 range do not throw, and the float and string paths disagree.** A float wraps around, and the sign can flip; a numeric string saturates at `PHP_INT_MAX`:
+
+```php
+Caster::toInt(1e20);      // 7766279631452241920   — wrapped
+Caster::toInt(9.3e18);    // -9146744073709551616  — wrapped, and now negative
+Caster::toInt('1e20');    // 9223372036854775807   — saturated instead
+Caster::toInt('9223372036854775808');  // 9223372036854775807
+```
+
+[`toNumber`](#tonumber--trytonumber) has neither limitation — it is exact at any magnitude and throws on non-finite input. Reach for it whenever the magnitude is unbounded, and convert down only once you know it fits.
+
 [↑ Back to top](#caster)
 
 ---
@@ -104,6 +139,23 @@ Caster::toFloat('abc');    // throws InvalidArgumentException (not numeric)
 Caster::toFloat(null);     // throws InvalidArgumentException
 Caster::tryToFloat('abc'); // null
 ```
+
+### Limitations
+
+**Non-finite values pass through.** A float can represent `NAN` and the infinities, so they are returned rather than rejected — unlike [`toInt`](#toint--trytoint), where the same values silently become `0`:
+
+```php
+Caster::toFloat(NAN);      // NAN
+Caster::toFloat(INF);      // INF
+```
+
+**A finite string too large for a float becomes `INF`.** This is the one path that *creates* a non-finite value out of a finite input, and it does not throw:
+
+```php
+Caster::toFloat('1e400');  // INF — not a throw
+```
+
+[`toNumber`](#tonumber--trytonumber) is exact at any magnitude and rejects non-finite input.
 
 [↑ Back to top](#caster)
 
