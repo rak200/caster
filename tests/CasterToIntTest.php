@@ -234,6 +234,100 @@ final class CasterToIntTest extends TestCase
     {
         $this->assertNull(Caster::tryToInt(null));
     }
+
+    public function testNonFiniteFloatThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt(NAN);
+    }
+
+    public function testInfinityThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt(INF);
+    }
+
+    public function testNegativeInfinityThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt(-INF);
+    }
+
+    public function testFloatBeyondIntRangeThrowsInsteadOfWrapping(): void
+    {
+        // Unguarded, (int) 1e20 wraps to 7766279631452241920.
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt(1e20);
+    }
+
+    public function testFloatBeyondIntRangeThrowsInsteadOfFlippingSign(): void
+    {
+        // Unguarded, (int) 9.3e18 wraps to -9146744073709551616 — positive in,
+        // negative out, which is the worst shape this guard exists to prevent.
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt(9.3e18);
+    }
+
+    public function testNonRepresentableFloatNamesItselfInTheMessage(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('1.0E+20 is not representable as an int');
+        Caster::toInt(1e20);
+    }
+
+    public function testFloatAtTheLowerBoundConverts(): void
+    {
+        // PHP_INT_MIN is exactly representable as a double, so it must survive
+        // the guard rather than being refused with the values beyond it.
+        $this->assertSame(PHP_INT_MIN, Caster::toInt((float) PHP_INT_MIN));
+    }
+
+    public function testLargestFloatBelowIntMaxConverts(): void
+    {
+        // The last double that still fits: 2**63 - 1024.
+        $this->assertSame(9223372036854774784, Caster::toInt(9.2233720368547748E18));
+    }
+
+    public function testFloatAtTwoToThe63Throws(): void
+    {
+        // The first double above PHP_INT_MAX. It is what (float) PHP_INT_MAX
+        // rounds up to, which is why the guard cannot be written against it.
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt(9.2233720368547758E18);
+    }
+
+    public function testToFloatContractBeyondIntRangeThrows(): void
+    {
+        $obj = new class implements ToFloat {
+            public function toFloat(): float
+            {
+                return 1e20;
+            }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt($obj);
+    }
+
+    public function testTryToIntNullOnNonFiniteFloat(): void
+    {
+        $this->assertNull(Caster::tryToInt(NAN));
+    }
+
+    public function testTryToIntNullOnFloatBeyondIntRange(): void
+    {
+        $this->assertNull(Caster::tryToInt(1e20));
+    }
+
+    // A DOCUMENTED LIMITATION, not desired behaviour: the string path saturates
+    // where the float path above throws. Deciding it exactly needs arbitrary-
+    // precision arithmetic — see the toInt() docblock, docs/caster.md and #23.
+    // The test exists so the limitation cannot change without the documentation
+    // changing with it.
+    public function testDocumentedLimitNumericStringBeyondIntRangeSaturates(): void
+    {
+        $this->assertSame(PHP_INT_MAX, Caster::toInt('1e20'));
+        $this->assertSame(PHP_INT_MAX, Caster::toInt('9223372036854775808'));
+    }
 }
 
 enum CasterToIntTestLevel: int

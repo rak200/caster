@@ -209,6 +209,58 @@ final class CasterToFloatTest extends TestCase
     {
         $this->assertNull(Caster::tryToFloat('abc'));
     }
+
+    // Passing a non-finite float through is deliberate and documented: a float can
+    // represent NAN and the infinities, so toFloat() returns what it was given.
+    // What it must not do is *create* one out of a finite input — the tests below
+    // that one cover the three parsing paths where it could.
+
+    public function testNonFiniteFloatsPassThrough(): void
+    {
+        $this->assertNan(Caster::toFloat(NAN));
+        $this->assertInfinite(Caster::toFloat(INF));
+    }
+
+    public function testStringTooLargeForFloatThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toFloat('1e400');
+    }
+
+    public function testStringableTooLargeForFloatThrows(): void
+    {
+        $obj = new class implements Stringable {
+            public function __toString(): string
+            {
+                return '1e400';
+            }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toFloat($obj);
+    }
+
+    public function testEnumScalarTooLargeForFloatThrows(): void
+    {
+        $obj = new class implements ToEnum {
+            public function toEnum(): UnitEnum
+            {
+                return CasterToFloatTestCode::Overflow;
+            }
+        };
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toFloat($obj);
+    }
+
+    public function testTryToFloatNullOnStringTooLargeForFloat(): void
+    {
+        $this->assertNull(Caster::tryToFloat('1e400'));
+    }
+
+    public function testLargestFiniteStringStillConverts(): void
+    {
+        // One exponent below the overflow: the guard must not refuse this.
+        $this->assertSame(1e308, Caster::toFloat('1e308'));
+    }
 }
 
 enum CasterToFloatTestLevel: int
@@ -221,6 +273,7 @@ enum CasterToFloatTestCode: string
 {
     case Half = '0.5';
     case Text = 'nope';
+    case Overflow = '1e400';
 }
 
 enum CasterToFloatTestColor

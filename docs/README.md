@@ -14,4 +14,4 @@ The contracts are single-method interfaces that form one cohesive concept, so th
 
 - Output is shown in trailing `// …` comments next to each call.
 - All snippets assume the relevant `use Rak200\Caster\...;` imports shown at the top of each file.
-- Every converter throws `InvalidArgumentException` for values it cannot convert; only the non-obvious throw conditions are called out per method.
+- Every converter throws `InvalidArgumentException` for values it cannot convert; only the non-obvious throw conditions are called out per method. Where a converter returns a value instead of throwing, its page carries a **Limitations** section saying so — `toInt` has one, for numeric strings beyond the int64 range.
