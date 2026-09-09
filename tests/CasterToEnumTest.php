@@ -6,6 +6,7 @@ namespace Rak200\Caster\Tests;
 
 use BackedEnum;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToEnum;
@@ -19,9 +20,8 @@ use Stringable;
  * @author rak200 <rak.ricardo@windowslive.com>
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(Caster::class)]
 final class CasterToEnumTest extends TestCase
 {
     public function testEnumCasePassthrough(): void

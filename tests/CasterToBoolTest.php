@@ -6,6 +6,7 @@ namespace Rak200\Caster\Tests;
 
 use BcMath\Number;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToArray;
@@ -23,9 +24,8 @@ use Stringable;
  * @author rak200 <rak.ricardo@windowslive.com>
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(Caster::class)]
 final class CasterToBoolTest extends TestCase
 {
     public function testBoolTrue(): void

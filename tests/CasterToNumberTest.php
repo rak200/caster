@@ -7,6 +7,7 @@ namespace Rak200\Caster\Tests;
 use BackedEnum;
 use BcMath\Number;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToBool;
@@ -23,9 +24,8 @@ use UnitEnum;
  * @author rak200 <rak.ricardo@windowslive.com>
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(Caster::class)]
 final class CasterToNumberTest extends TestCase
 {
     public function testNumberPassthrough(): void

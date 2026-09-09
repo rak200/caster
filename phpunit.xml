@@ -4,7 +4,16 @@
          bootstrap="vendor/autoload.php"
          colors="true"
          failOnWarning="true"
-         failOnRisky="true">
+         failOnRisky="true"
+         requireCoverageMetadata="true">
+    <!-- requireCoverageMetadata makes a test that declares no coverage target risky, and
+         failOnRisky above turns that into a red suite. It is on because the previous
+         arrangement looked like this one and was not: the formatter's
+         php_unit_test_class_requires_covers inserts @coversNothing when a class declares
+         nothing, PHPUnit dropped docblock metadata in 12, and so 13 files carried an
+         annotation no tool read — asserting nothing while reading as an assertion. The
+         #[CoversClass] attribute is the form PHPUnit 13 reads; this flag is what stops the
+         next test file from omitting it. -->
     <testsuites>
         <testsuite name="Unit">
             <directory>tests</directory>

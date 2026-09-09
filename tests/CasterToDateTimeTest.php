@@ -7,6 +7,7 @@ namespace Rak200\Caster\Tests;
 use DateTime;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToDateTime;
@@ -19,9 +20,8 @@ use Stringable;
  * @author rak200 <rak.ricardo@windowslive.com>
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(Caster::class)]
 final class CasterToDateTimeTest extends TestCase
 {
     public function testDateTimeImmutablePassthrough(): void

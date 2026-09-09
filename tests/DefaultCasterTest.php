@@ -6,6 +6,7 @@ namespace Rak200\Caster\Tests;
 
 use ArrayIterator;
 use BcMath\Number;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\CasterInterface;
 use Rak200\Caster\Contracts\ToInt;
@@ -21,9 +22,8 @@ use function fopen;
  * @author rak200 <rak.ricardo@windowslive.com>
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(DefaultCaster::class)]
 final class DefaultCasterTest extends TestCase
 {
     public function testImplementsCasterInterface(): void
