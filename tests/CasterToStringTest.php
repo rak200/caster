@@ -8,6 +8,7 @@ use BackedEnum;
 use BcMath\Number;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToBool;
@@ -32,9 +33,8 @@ use function json_decode;
  * @author rak200 <rak.ricardo@windowslive.com>
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(Caster::class)]
 final class CasterToStringTest extends TestCase
 {
     /** Strings are returned as-is without modification. */

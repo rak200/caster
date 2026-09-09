@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Rak200\Caster\Tests;
 
 use ArrayIterator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\Castable;
@@ -28,9 +29,8 @@ use function json_decode;
  * @author rak200 <rak.ricardo@windowslive.com>
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(Caster::class)]
 final class CasterToJsonTest extends TestCase
 {
     /** ToJson objects delegate directly to their toJson() method. */

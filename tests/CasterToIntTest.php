@@ -8,6 +8,7 @@ use BackedEnum;
 use BcMath\Number;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToBool;
@@ -25,9 +26,8 @@ use UnitEnum;
  * @author rak200 <rak.ricardo@windowslive.com>
  *
  * @internal
- *
- * @coversNothing
  */
+#[CoversClass(Caster::class)]
 final class CasterToIntTest extends TestCase
 {
     public function testInt(): void
