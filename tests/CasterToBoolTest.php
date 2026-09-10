@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Rak200\Caster\Tests;
 
+use ArrayIterator;
 use BcMath\Number;
 use InvalidArgumentException;
+use IteratorAggregate;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
@@ -17,6 +19,7 @@ use Rak200\Caster\Contracts\ToInt;
 use Rak200\Caster\Contracts\ToNumber;
 use RuntimeException;
 use Stringable;
+use Traversable;
 
 /**
  * Tests for Caster::toBool().
@@ -214,6 +217,95 @@ final class CasterToBoolTest extends TestCase
             }
         };
         $this->assertTrue(Caster::toBool($obj));
+    }
+
+    public function testEmptyTraversable(): void
+    {
+        $this->assertFalse(Caster::toBool(new ArrayIterator([])));
+    }
+
+    public function testNonEmptyTraversable(): void
+    {
+        $this->assertTrue(Caster::toBool(new ArrayIterator([1])));
+    }
+
+    public function testEmptyGenerator(): void
+    {
+        $empty = (static function (): Traversable {
+            yield from [];
+        })();
+        $this->assertFalse(Caster::toBool($empty));
+    }
+
+    public function testNonEmptyGenerator(): void
+    {
+        $gen = (static function (): Traversable {
+            yield 1;
+        })();
+        $this->assertTrue(Caster::toBool($gen));
+    }
+
+    public function testIteratorAggregate(): void
+    {
+        $obj = new class implements IteratorAggregate {
+            public function getIterator(): Traversable
+            {
+                return new ArrayIterator(['a']);
+            }
+        };
+        $this->assertTrue(Caster::toBool($obj));
+    }
+
+    public function testGeneratorIsNotConsumed(): void
+    {
+        $gen = (static function (): Traversable {
+            yield 1;
+
+            yield 2;
+
+            yield 3;
+        })();
+
+        Caster::toBool($gen);
+
+        // Emptiness starts the generator without advancing it, so nothing is lost.
+        $this->assertSame([1, 2, 3], iterator_to_array($gen, false));
+    }
+
+    public function testTraversableDoesNotOutrankAContract(): void
+    {
+        // Implements both. ToBool must decide it, not iterability — the object is
+        // non-empty as an iterable and false by its own contract.
+        $obj = new class implements IteratorAggregate, ToBool {
+            public function toBool(): bool
+            {
+                return false;
+            }
+
+            public function getIterator(): Traversable
+            {
+                return new ArrayIterator([1, 2]);
+            }
+        };
+        $this->assertFalse(Caster::toBool($obj));
+    }
+
+    public function testToCollectionOutranksBeingTraversable(): void
+    {
+        // Implements both, and they disagree: iterating it directly yields two
+        // elements, while its contract reports an empty collection.
+        $obj = new class implements IteratorAggregate, ToCollection {
+            public function toCollection(): iterable
+            {
+                return [];
+            }
+
+            public function getIterator(): Traversable
+            {
+                return new ArrayIterator([1, 2]);
+            }
+        };
+        $this->assertFalse(Caster::toBool($obj));
     }
 
     public function testTryToBool(): void

@@ -170,7 +170,7 @@ Caster::toBool(mixed $value): bool
 Caster::tryToBool(mixed $value): ?bool
 ```
 
-Resolution order: `bool` as-is → `BcMath\Number` compared numerically to zero → `ToBool` → `ToInt` / `ToFloat` via `(bool)` → `ToNumber` compared numerically to zero → `int` / `float` / `string` / `Stringable` via `(bool)` (PHP semantics: `''`, `'0'`, `0`, `0.0` are false) → `array` / `ToArray` **emptiness** (`!== []`) → `ToCollection` **emptiness**, decided lazily from the first element (the iterable is never materialised).
+Resolution order: `bool` as-is → `BcMath\Number` compared numerically to zero → `ToBool` → `ToInt` / `ToFloat` via `(bool)` → `ToNumber` compared numerically to zero → `int` / `float` / `string` / `Stringable` via `(bool)` (PHP semantics: `''`, `'0'`, `0`, `0.0` are false) → `array` / `ToArray` **emptiness** (`!== []`) → `ToCollection` **emptiness** → any other `Traversable` **emptiness**. Emptiness is decided lazily from the first element: the iterable is never materialised, and a `Generator` is started but not advanced, so nothing is consumed from it.
 
 A zero `Number` is false at **any scale** — string truthiness would call `'0.00'` true.
 
@@ -184,8 +184,18 @@ Caster::toBool('false');            // true  (non-empty, non-'0' string — PHP 
 Caster::toBool(new Number('0.00')); // false (zero at any scale)
 Caster::toBool([]);                 // false (empty array)
 Caster::toBool([0]);                // true  (non-empty array)
+Caster::toBool(new ArrayIterator([]));  // false (empty iterable, not materialised)
+Caster::toBool($generator);         // true if it yields anything — and it still yields it
 Caster::toBool(null);               // throws InvalidArgumentException
 Caster::tryToBool(null);            // null
+```
+
+The `Traversable` arm is the **last** of the iterable ones, so an object that both implements a
+contract and is iterable is decided by its contract:
+
+```php
+// implements ToCollection (empty) and IteratorAggregate (two elements)
+Caster::toBool($obj);               // false — the contract wins
 ```
 
 [↑ Back to top](#caster)
