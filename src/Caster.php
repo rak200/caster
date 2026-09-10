@@ -209,8 +209,12 @@ final class Caster
     /**
      * Convert any value to a boolean.
      *
-     * A zero {@see Number} is false regardless of scale ('0.00' included);
-     * iterables convert to their emptiness without being materialised.
+     * A zero {@see Number} is false regardless of scale ('0.00' included).
+     *
+     * Iterables convert to their emptiness without being materialised — arrays,
+     * ToArray and ToCollection implementors, and any native Traversable. Emptiness
+     * is decided from the first element, which starts a Generator but consumes
+     * nothing from it: every element is still there afterwards.
      *
      * @param mixed $value the value to convert
      *
@@ -234,6 +238,9 @@ final class Caster
             Type::isArray($value) => $value !== [],
             $value instanceof ToArray => $value->toArray() !== [],
             $value instanceof ToCollection => Iter::isNotEmpty($value->toCollection()),
+            // Last of the iterable arms, so an object implementing a contract is still
+            // decided by its contract rather than by being iterable.
+            $value instanceof Traversable => Iter::isNotEmpty($value),
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to bool'),
         };
     }
