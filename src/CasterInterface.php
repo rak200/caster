@@ -24,7 +24,8 @@ interface CasterInterface
     /**
      * Convert any value to a string. See {@see Caster::toString()}.
      *
-     * @throws InvalidArgumentException when $value cannot be stringified
+     * @throws InvalidArgumentException when $value cannot be stringified (e.g. null, resource)
+     * @throws JsonException            when the array/object/ToCollection branch cannot be JSON-encoded
      */
     public function toString(mixed $value): string;
 
@@ -172,7 +173,8 @@ interface CasterInterface
     /**
      * Encode any value as a JSON string. See {@see Caster::toJson()}.
      *
-     * @throws JsonException when $value cannot be encoded to JSON
+     * @throws JsonException            when $value cannot be encoded to JSON
+     * @throws InvalidArgumentException when $value is a Castable implementing only the marker interface
      */
     public function toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string;
 
