@@ -110,6 +110,9 @@ Universal converters: `toString`, `toInt`, `toFloat`, `toBool`, `toArray`, `toNu
 
 Per-method reference with runnable examples lives in [`docs/`](docs/README.md).
 
+Why the library is shaped this way — the one runtime dependency, the contract dispatch order, the
+instance-level mirror, and why it is not on Packagist — is in [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Versioning
 
 Follows [Semantic Versioning](https://semver.org). The public API is stable from `1.0.0` onwards: breaking changes require a major version bump. See [CHANGELOG.md](CHANGELOG.md) for release history.

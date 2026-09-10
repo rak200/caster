@@ -20,7 +20,7 @@ correctness over efficiency, safe defaults, and the form of tests and docblocks.
 
 **rak200/caster** is a PHP 8.4+ library providing type casting contracts (interfaces) and a `Caster` utility class that converts arbitrary values to those types.
 
-**Deliberate deviation from the shared "no runtime Composer dependencies" rule:** caster requires **`rak200/utils` (`^4.4`)** at runtime — the converters are built on its `Type`, `Enum`, `Num`, `Iter`, `Dt` and `Json` helpers (the prefer-lib-over-native rule applied across libraries). The one native kept against that rule is `iterator_to_array` (imported via `use function`, with the reason stated at the import): materialisation must preserve keys for an **arbitrary** `Traversable`, and `Iter::toArray()` binds `TKey of array-key`, which cannot resolve against the unconstrained iterables `Caster` accepts — adopting it would need a PHPStan suppression or a weaker generic in utils. utils is consumed through a `"type": "vcs"` repository entry until both libraries land on Packagist (see [ROADMAP.md](ROADMAP.md)); consumers must therefore list **both** VCS repositories (Composer reads `repositories` only from the root project — the README's Installation section shows this).
+It requires **`rak200/utils` (`^4.4`)** at runtime — a deviation from the shared "no runtime Composer dependencies" rule — and keeps `iterator_to_array` as its one native against the prefer-`utils` rule. Both deviations, the contract dispatch order, the reason `CasterInterface` exists, and why the package is not on Packagist are argued in [ARCHITECTURE.md](ARCHITECTURE.md); this file does not repeat them.
 
 ## Structure
 
@@ -70,12 +70,14 @@ Universal converters (throw `InvalidArgumentException` for unconvertible types):
 - `toCollection(mixed $value): iterable`
 
 Other:
-- `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\UnitEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray`)
+- `cast(Castable $value): string|int|float|bool|array|\BcMath\Number|\DateTimeImmutable|\UnitEnum|\Traversable` — dispatches to the first matching contract (priority: `ToJson` → `ToString` → `ToNumber` → `ToInt` → `ToFloat` → `ToBool` → `ToDateTime` → `ToEnum` → `ToCollection` → `ToArray` — [why that order](ARCHITECTURE.md#contract-dispatch-has-a-fixed-priority))
 - `toJson(mixed $value, int $flags = JSON_PRETTY_PRINT): string` — JSON-encodes any value via utils' `Json::encode` (always `JSON_THROW_ON_ERROR`); `ToJson` objects delegate to `toJson()` ignoring `$flags`; other `Castable`s go through `cast()` first; `Traversable`s (including `cast()` results) are materialised before encoding
 
 ## CasterInterface & DefaultCaster
 
-`Rak200\Caster\CasterInterface` mirrors the full `Caster` API as instance methods (same signatures, defaults and exceptions — converters, `try*` twins, `cast`, `toJson`) so consumers can inject and mock the conversion surface. `Rak200\Caster\DefaultCaster` is the canonical implementation: `final`, stateless, each method a one-line delegation to the corresponding static.
+`Rak200\Caster\CasterInterface` mirrors the full `Caster` API as instance methods (same signatures, defaults and exceptions — converters, `try*` twins, `cast`, `toJson`). `Rak200\Caster\DefaultCaster` is the canonical implementation: `final`, stateless, each method a one-line delegation to the corresponding static.
+
+`Caster` does not implement the interface — the methods are static — so **no analyser compares the two**, and `CasterInterfaceTest` is what does, by reflection. [ARCHITECTURE.md](ARCHITECTURE.md#a-static-class-with-an-interface-it-does-not-implement) has the reasoning.
 
 ## Testing
 
@@ -85,8 +87,8 @@ Testing **policy** is Layer 1 and testing **form** is Layer 2. caster specifics:
   its coverage target with `#[CoversClass]`, and `requireCoverageMetadata` makes omitting it a
   red suite — the reason is at the setting.
 - The suite is split per converter: one `CasterTo<Type>Test.php` per universal converter (covering its `try*` twin too), plus `CasterCastTest.php` (`cast()`/`tryCast()` dispatch), `CasterBcMathTest.php` (BcMath edge cases) and `DefaultCasterTest.php` (interface delegation + mockability).
-- **Mutation testing** — Infection (`infection/infection`, config `infection.json5.dist`) runs via `composer mutation` (locally through Xdebug via the script's `XDEBUG_MODE=coverage`; CI uses pcov, and narrows the run to the changed lines on a pull request). The **MSI gate is closed at 100** (`minMsi=100` / `minCoveredMsi=100`), enforced by a floor-only CI step. Surviving mutants are killed by strengthening tests, or — when provably equivalent — suppressed in-code with `@infection-ignore-all` anchored on the smallest node that isolates just the equivalent construct (four of them: three PHPStan-only casts / re-cast `Stringable`, plus the `(float) PHP_INT_MIN` bound in `intFromFloat` — dropping that cast is equivalent, since PHP promotes the int to the same float and `-PHP_INT_MIN` overflows to the same `2**63`, but keeping it states the domain instead of resting on two implicit conversions), or removed as dead code when even that can't reach the mutation (the redundant `toNumber` `Number => $value` fast-path arm — `MatchArmRemoval` targets the parent `Match_` node, not the arm, and the fall-through `Num::parseNumber` returns the same instance); the threshold is never lowered.
+- **Mutation testing** — Infection (`infection/infection`, config `infection.json5.dist`) runs via `composer mutation` (locally through Xdebug via the script's `XDEBUG_MODE=coverage`; CI uses pcov, and narrows the run to the changed lines on a pull request). The **MSI gate is closed at 100** (`minMsi=100` / `minCoveredMsi=100`), enforced by a floor-only CI step. Surviving mutants are killed by strengthening tests, or — when provably equivalent — suppressed in-code with `@infection-ignore-all` anchored on the smallest node that isolates just the equivalent construct; each suppression states its own reason where it sits, and `grep -n infection-ignore-all src/` is the inventory. Where even that cannot reach the mutation the code is removed instead — `MatchArmRemoval` targets the parent `Match_` node rather than the arm, so a redundant arm has to go rather than be annotated. The threshold is never lowered.
 
 ## Versioning & releases
 
-SemVer policy and the release checklist are Layer 1. caster delta: not on Packagist yet — consumers add this repo (and `rak200/utils`) as `"type": "vcs"` and resolve versions from git tags.
+SemVer policy and the release checklist are Layer 1. caster delta: not on Packagist yet — consumers add this repo (and `rak200/utils`) as `"type": "vcs"` and resolve versions from git tags, for the reason in [ARCHITECTURE.md](ARCHITECTURE.md#not-on-packagist).
