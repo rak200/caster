@@ -70,7 +70,7 @@ final class Caster
      *
      * @return string the string representation of $value
      *
-     * @throws InvalidArgumentException When $value cannot be stringified (e.g. null, resource).
+     * @throws InvalidArgumentException when $value cannot be stringified (e.g. null, resource)
      * @throws JsonException            when the array/object/ToCollection branch cannot be JSON-encoded
      */
     public static function toString(mixed $value): string
