@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-// Style is Layer 2: the preset, the overrides and the reason for each live in
-// vendor/rak200/coding-standard-php. This file only says what to look at.
+// Canary round 2: no require of the pinned standard, and no setRules either — so the
+// require half of the gate must fire on its own, with the setRules half silent.
 
-return (require __DIR__ . '/vendor/rak200/coding-standard-php/.php-cs-fixer.dist.php')
-    ->setRules(['@PSR12' => true])
+return (new PhpCsFixer\Config())
     ->setFinder(
         PhpCsFixer\Finder::create()
             ->in([__DIR__ . '/src', __DIR__ . '/tests'])
