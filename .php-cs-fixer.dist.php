@@ -6,6 +6,7 @@ declare(strict_types=1);
 // vendor/rak200/coding-standard-php. This file only says what to look at.
 
 return (require __DIR__ . '/vendor/rak200/coding-standard-php/.php-cs-fixer.dist.php')
+    ->setRules(['@PSR12' => true])
     ->setFinder(
         PhpCsFixer\Finder::create()
             ->in([__DIR__ . '/src', __DIR__ . '/tests'])
