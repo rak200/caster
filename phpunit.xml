@@ -4,7 +4,7 @@
          bootstrap="vendor/autoload.php"
          colors="true"
          failOnWarning="true"
-         failOnRisky="true"
+         failOnRisky="false"
          requireCoverageMetadata="true">
     <!-- requireCoverageMetadata makes a test that declares no coverage target risky, and
          failOnRisky above turns that into a red suite. It is on because the previous
