@@ -3,8 +3,7 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
-         failOnWarning="true"
-         failOnRisky="false"
+         failOnRisky="true"
          requireCoverageMetadata="true">
     <!-- requireCoverageMetadata makes a test that declares no coverage target risky, and
          failOnRisky above turns that into a red suite. It is on because the previous
