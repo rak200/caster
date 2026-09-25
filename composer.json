@@ -24,7 +24,6 @@
     },
     "require": {
         "php": "^8.4",
-        "ext-bcmath": "*",
         "rak200/utils": "^4.4"
     },
     "autoload": {
