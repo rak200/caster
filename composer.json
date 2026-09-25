@@ -43,7 +43,7 @@
         }
     ],
     "require-dev": {
-        "rak200/coding-standard-php": "^0.3.5"
+        "rak200/coding-standard-php": "^0.5.3"
     },
     "autoload-dev": {
         "psr-4": {
