@@ -24,6 +24,7 @@
     },
     "require": {
         "php": "^8.4",
+        "ext-bcmath": "*",
         "rak200/utils": "^4.4"
     },
     "autoload": {
@@ -42,7 +43,7 @@
         }
     ],
     "require-dev": {
-        "rak200/coding-standard-php": "^0.5.3"
+        "rak200/coding-standard-php": "^0.3.5"
     },
     "autoload-dev": {
         "psr-4": {
