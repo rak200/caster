@@ -19,7 +19,6 @@ use UnitEnum;
  */
 final class DefaultCaster implements CasterInterface
 {
-    /** {@see Caster::toString()}. */
     public function toString(mixed $value): string
     {
         return Caster::toString($value);
