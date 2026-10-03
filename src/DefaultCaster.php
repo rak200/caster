@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Rak200\Caster;
 
 use BcMath\Number;
+use Closure;
 use DateTimeImmutable;
 use Rak200\Caster\Contracts\Castable;
 use Traversable;
@@ -22,7 +23,7 @@ final class DefaultCaster implements CasterInterface
     /** {@see Caster::toString()}. */
     public function toString(mixed $value): string
     {
-        return Caster::toString($value);
+        return Closure::fromCallable([Caster::class, 'toString'])($value);
     }
 
     /** {@see Caster::tryToString()}. */
