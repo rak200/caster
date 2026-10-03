@@ -19,6 +19,8 @@ use UnitEnum;
  */
 final class DefaultCaster implements CasterInterface
 {
+    public const string NAME = 'default';
+
     /** {@see Caster::toString()}. */
     public function toString(mixed $value): string
     {
