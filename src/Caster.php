@@ -26,6 +26,7 @@ use Rak200\Utils\Iter;
 use Rak200\Utils\Json;
 use Rak200\Utils\Num;
 use Rak200\Utils\Type;
+use RoundingMode;
 use Stringable;
 use Traversable;
 use UnitEnum;
@@ -114,13 +115,11 @@ final class Caster
      * would wrap silently — 9.3e18 comes back as -9146744073709551616, sign and
      * all. PHP 8.5 warns on that same cast.
      *
-     * One limitation remains, on the string path only: a numeric *string* beyond
-     * the int64 range saturates at PHP_INT_MAX instead of throwing. Deciding it
-     * exactly needs arbitrary-precision arithmetic — (float) '9223372036854775807'
-     * rounds up to 2**63, so a float comparison refuses a string that fits — which
-     * is more machinery than that path warrants. {@see self::toNumber()} has no
-     * such limitation and is the conversion to reach for when the magnitude is
-     * unbounded.
+     * A numeric string, a Stringable and a ToNumber are decided exactly, through
+     * BcMath\Number: truncated toward zero digit for digit, and refused beyond the
+     * int64 range. PHP's own (int) goes through float for anything with a fraction
+     * or an exponent, so '9007199254740993.0' would come back as 9007199254740992,
+     * and a value past the range would saturate at PHP_INT_MAX.
      *
      * @param mixed $value the value to convert
      *
@@ -134,15 +133,15 @@ final class Caster
             Type::isInt($value) => $value,
             $value instanceof ToInt => $value->toInt(),
             $value instanceof ToFloat => self::intFromFloat($value->toFloat()),
-            $value instanceof ToNumber => (int) (string) $value->toNumber(),
+            $value instanceof ToNumber => self::intFromNumeric((string) $value->toNumber()),
             $value instanceof ToBool => $value->toBool() ? 1 : 0,
             $value instanceof ToDateTime => Dt::toEpoch($value->toDateTime()),
             $value instanceof ToEnum && Type::isInt($i = Enum::intOrNull($value->toEnum())) => $i,
             // bool is split out from float: it always fits, and never needs the guard.
             Type::isBool($value) => (int) $value,
             Type::isFloat($value) => self::intFromFloat($value),
-            Type::isStr($value) && Num::is($value) => (int) $value,
-            $value instanceof Stringable && Num::is($v = (string) $value) => (int) /* @infection-ignore-all: $v is already a string */ (string) $v,
+            Type::isStr($value) && Num::is($value) => self::intFromNumeric($value),
+            $value instanceof Stringable && Num::is($v = (string) $value) => self::intFromNumeric($v),
             default => throw new InvalidArgumentException('Cannot convert ' . Type::of($value) . ' to int'),
         };
     }
@@ -576,6 +575,26 @@ final class Caster
         } catch (InvalidArgumentException|JsonException) {
             return null;
         }
+    }
+
+    /**
+     * Convert a numeric string to an int exactly: truncated toward zero, and refused beyond the
+     * int64 range.
+     *
+     * @throws InvalidArgumentException when the value lies outside the int64 range
+     */
+    private static function intFromNumeric(string $value): int
+    {
+        // Through Number rather than PHP's own cast, which goes through float for anything with a
+        // fraction or an exponent. Null is a magnitude whose decimal form is impractical, and no
+        // int holds one of those either.
+        $whole = Num::parseNumberOrNull($value)?->round(0, RoundingMode::TowardsZero);
+
+        if ($whole !== null && Num::inRange($whole, PHP_INT_MIN, PHP_INT_MAX)) {
+            return (int) (string) $whole;
+        }
+
+        throw new InvalidArgumentException(var_export($value, true) . ' is not representable as an int');
     }
 
     /**

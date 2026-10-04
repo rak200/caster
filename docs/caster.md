@@ -2,7 +2,7 @@
 
 [← Reference](README.md)
 
-Static utility class for converting values between PHP types. Dispatches to the appropriate contract method when the value implements one of the [Castable contracts](contracts.md), and falls back to native PHP coercions for primitives. Every converter throws `InvalidArgumentException` for values it cannot convert, and has a `try*` twin that returns `null` instead of throwing. One documented exception remains, on `toInt`'s string path — see its [**Limitations**](#limitations). The same API is also available instance-level for dependency injection and mocking — see [`CasterInterface` / `DefaultCaster`](caster-interface.md).
+Static utility class for converting values between PHP types. Dispatches to the appropriate contract method when the value implements one of the [Castable contracts](contracts.md), and falls back to native PHP coercions for primitives. Every converter throws `InvalidArgumentException` for values it cannot convert, and has a `try*` twin that returns `null` instead of throwing. The same API is also available instance-level for dependency injection and mocking — see [`CasterInterface` / `DefaultCaster`](caster-interface.md).
 
 ```php
 use Rak200\Caster\Caster;
@@ -64,7 +64,7 @@ Caster::toInt(mixed $value): int
 Caster::tryToInt(mixed $value): ?int
 ```
 
-Resolution order: `int` as-is → `ToInt` → `ToFloat` truncated by `(int)` → `ToNumber` via its string form → `ToBool` as `1` / `0` → `ToDateTime` as its **Unix timestamp** → int-backed `ToEnum` as its backing value → `bool` via `(int)` → `float` via `(int)`, **provided an int can represent it** → strictly numeric `string` / `Stringable` via `(int)`. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0`. So do `NAN`, the infinities, and any float beyond the int64 range, which `(int)` would otherwise wrap silently.
+Resolution order: `int` as-is → `ToInt` → `ToFloat` truncated by `(int)` → `ToNumber`, decided exactly like a numeric string → `ToBool` as `1` / `0` → `ToDateTime` as its **Unix timestamp** → int-backed `ToEnum` as its backing value → `bool` via `(int)` → `float` via `(int)`, **provided an int can represent it** → strictly numeric `string` / `Stringable`, decided exactly through `BcMath\Number`: truncated toward zero digit for digit, and refused beyond the int64 range. Non-numeric or whitespace-padded strings **throw** — they are never coerced to `0`. So do `NAN`, the infinities, and any float beyond the int64 range, which `(int)` would otherwise wrap silently.
 
 ```php
 Caster::toInt(42);        // 42
@@ -102,20 +102,20 @@ Caster::toInt(9.2233720368547748E18);     // 9223372036854774784  (the last one 
 Caster::toInt(9.2233720368547758E18);     // throws — this is 2**63, one ULP too far
 ```
 
-### Limitations
+### Numeric strings are decided exactly
 
-One case returns a value where the rest of the method throws, and it is documented rather than fixed.
-
-**A numeric *string* beyond the int64 range saturates at `PHP_INT_MAX`** instead of throwing:
+A numeric string, a `Stringable` and a `ToNumber` go through `BcMath\Number` rather than PHP's own `(int)`, which goes through float for anything with a fraction or an exponent — and past 2⁵³ a float is not the number the string spells:
 
 ```php
-Caster::toInt('1e20');                 // 9223372036854775807 — saturated, not a throw
-Caster::toInt('9223372036854775808');  // 9223372036854775807
+Caster::toInt('9007199254740993.0');     // 9007199254740993     — (int) gives …992
+Caster::toInt('9223372036854775806.9');  // 9223372036854775806  — (int) gives PHP_INT_MAX
+Caster::toInt('9223372036854775807.9');  // 9223372036854775807  (truncates into range)
+Caster::toInt('9223372036854775808');    // throws — one past PHP_INT_MAX; (int) saturates
+Caster::toInt('1e20');                   // throws
+Caster::tryToInt('9223372036854775808'); // null
 ```
 
-Deciding this exactly needs arbitrary-precision arithmetic rather than a float comparison: `(float) '9223372036854775807'` rounds *up* to 2⁶³, so comparing in float would refuse a string that fits perfectly. That is more machinery than the string path warrants.
-
-[`toNumber`](#tonumber--trytonumber) has no such limitation — it is exact at any magnitude and throws on non-finite input. Reach for it whenever the magnitude is unbounded, and convert down only once you know it fits.
+[`toNumber`](#tonumber--trytonumber) is the conversion to reach for when the magnitude is unbounded: it is exact at any size, and converting down with `toInt` refuses what does not fit rather than saturating.
 
 [↑ Back to top](#caster)
 

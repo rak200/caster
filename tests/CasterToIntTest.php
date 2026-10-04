@@ -9,6 +9,7 @@ use BcMath\Number;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Rak200\Caster\Caster;
 use Rak200\Caster\Contracts\ToBool;
@@ -326,15 +327,105 @@ final class CasterToIntTest extends TestCase
         $this->assertNull(Caster::tryToInt(1e20));
     }
 
-    // A DOCUMENTED LIMITATION, not desired behaviour: the string path saturates
-    // where the float path above throws. Deciding it exactly needs arbitrary-
-    // precision arithmetic — see the toInt() docblock, docs/caster.md and #23.
-    // The test exists so the limitation cannot change without the documentation
-    // changing with it.
-    public function testDocumentedLimitNumericStringBeyondIntRangeSaturates(): void
+    #[DataProvider('numericStringBeyondIntRangeProvider')]
+    public function testNumericStringBeyondIntRangeThrows(string $value): void
     {
-        $this->assertSame(PHP_INT_MAX, Caster::toInt('1e20'));
-        $this->assertSame(PHP_INT_MAX, Caster::toInt('9223372036854775808'));
+        // These saturated at PHP_INT_MAX or PHP_INT_MIN until the string path was decided
+        // through Number; the float path above has always refused its own equivalents.
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt($value);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function numericStringBeyondIntRangeProvider(): iterable
+    {
+        yield 'one past PHP_INT_MAX' => ['9223372036854775808'];
+
+        yield 'one past PHP_INT_MIN' => ['-9223372036854775809'];
+
+        yield 'twenty digits' => ['99999999999999999999'];
+
+        yield 'an exponent' => ['1e20'];
+
+        yield 'a negative exponent form' => ['-1e20'];
+
+        yield 'an exponent too large to expand' => ['1e999999999'];
+    }
+
+    public function testNonNumericStringIsNotConvertibleRatherThanOutOfRange(): void
+    {
+        // A string that is not a number never reaches the range check: it is refused as a
+        // string, and the message says so rather than calling it a number too large.
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot convert string to int');
+        Caster::toInt('abc');
+    }
+
+    public function testNonRepresentableStringNamesItselfInTheMessage(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("'9223372036854775808' is not representable as an int");
+        Caster::toInt('9223372036854775808');
+    }
+
+    #[DataProvider('numericStringTruncatedExactlyProvider')]
+    public function testNumericStringIsTruncatedTowardZeroExactly(string $value, int $expected): void
+    {
+        // PHP's own (int) goes through float for anything with a fraction or an exponent, and
+        // past 2**53 a float is not the number the string spells.
+        $this->assertSame($expected, Caster::toInt($value));
+    }
+
+    /**
+     * @return iterable<string, array{string, int}>
+     */
+    public static function numericStringTruncatedExactlyProvider(): iterable
+    {
+        yield 'PHP_INT_MAX' => ['9223372036854775807', PHP_INT_MAX];
+
+        yield 'PHP_INT_MIN' => ['-9223372036854775808', PHP_INT_MIN];
+
+        yield 'a fraction above PHP_INT_MAX that truncates into range' => ['9223372036854775807.9', PHP_INT_MAX];
+
+        yield 'a fraction below PHP_INT_MIN that truncates into range' => ['-9223372036854775808.9', PHP_INT_MIN];
+
+        yield '2**53 + 1 with a fraction, which float rounds to an even neighbour' => ['9007199254740993.0', 9007199254740993];
+
+        yield 'one below PHP_INT_MAX, with a fraction' => ['9223372036854775806.9', 9223372036854775806];
+
+        yield 'a negative fraction, toward zero' => ['-9223372036854775807.5', -9223372036854775807];
+
+        yield 'a small negative fraction, to zero' => ['-0.5', 0];
+
+        yield 'an exponent within range' => ['1e3', 1000];
+    }
+
+    public function testStringableAndToNumberBeyondIntRangeThrow(): void
+    {
+        $stringable = new class implements Stringable {
+            public function __toString(): string
+            {
+                return '9223372036854775808';
+            }
+        };
+        $number = new class implements ToNumber {
+            public function toNumber(): Number
+            {
+                return new Number('-9223372036854775809');
+            }
+        };
+
+        $this->assertNull(Caster::tryToInt($stringable));
+        $this->assertNull(Caster::tryToInt($number));
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt($stringable);
+    }
+
+    public function testTryToIntNullOnStringBeyondIntRange(): void
+    {
+        $this->assertNull(Caster::tryToInt('9223372036854775808'));
     }
 }
 
