@@ -282,6 +282,14 @@ final class CasterToIntTest extends TestCase
         $this->assertSame(PHP_INT_MIN, Caster::toInt((float) PHP_INT_MIN));
     }
 
+    public function testFirstFloatBelowIntMinThrows(): void
+    {
+        // The mirror of 2**63 on the other side: the first double below PHP_INT_MIN,
+        // 2048 further down, does not fit either.
+        $this->expectException(InvalidArgumentException::class);
+        Caster::toInt(-(2.0 ** 63) - 2048.0);
+    }
+
     public function testLargestFloatBelowIntMaxConverts(): void
     {
         // The last double that still fits: 2**63 - 1024.
