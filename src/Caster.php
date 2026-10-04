@@ -585,19 +585,11 @@ final class Caster
      */
     private static function intFromFloat(float $value): int
     {
-        // The bound is derived from PHP_INT_MIN because that one IS exactly
-        // representable as a double; PHP_INT_MAX is not — it rounds up to 2**63,
-        // which does not fit, so comparing against it would let a wrapping value
-        // through. NAN and the infinities fail both comparisons on their own —
-        // every comparison against NAN is false — so finiteness needs no separate
-        // test. PHP 8.5 warns on precisely the cast this guards.
-        // @infection-ignore-all: dropping the cast is equivalent — PHP promotes int
-        // PHP_INT_MIN to this same float in the comparison, and -PHP_INT_MIN overflows
-        // to the same 2**63 — but it would leave the line resting on two implicit
-        // conversions instead of stating the domain it works in.
-        $min = (float) PHP_INT_MIN;
-
-        if ($value >= $min && $value < -$min) {
+        // The bounds are the int range itself, because Num::inRange orders a float
+        // against an int exactly since rak200/utils 4.5.5: 2**63, the first double
+        // above PHP_INT_MAX, is outside it, and NAN and the infinities are in no
+        // range. PHP 8.5 warns on precisely the cast this guards.
+        if (Num::inRange($value, PHP_INT_MIN, PHP_INT_MAX)) {
             return (int) $value;
         }
 
